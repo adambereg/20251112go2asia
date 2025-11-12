@@ -15,6 +15,16 @@ export default defineConfig({
         query: {
           useQuery: true,
           useInfinite: false,
+          // Стабильные queryKey (не зависят от порядка параметров)
+          queryKey: (params) => {
+            const sortedParams = Object.keys(params || {})
+              .sort()
+              .reduce((acc, key) => {
+                acc[key] = params[key];
+                return acc;
+              }, {} as Record<string, unknown>);
+            return JSON.stringify(sortedParams);
+          },
         },
       },
     },
@@ -36,6 +46,15 @@ export default defineConfig({
         query: {
           useQuery: true,
           useInfinite: false,
+          queryKey: (params) => {
+            const sortedParams = Object.keys(params || {})
+              .sort()
+              .reduce((acc, key) => {
+                acc[key] = params[key];
+                return acc;
+              }, {} as Record<string, unknown>);
+            return JSON.stringify(sortedParams);
+          },
         },
       },
     },
@@ -57,6 +76,15 @@ export default defineConfig({
         query: {
           useQuery: true,
           useInfinite: false,
+          queryKey: (params) => {
+            const sortedParams = Object.keys(params || {})
+              .sort()
+              .reduce((acc, key) => {
+                acc[key] = params[key];
+                return acc;
+              }, {} as Record<string, unknown>);
+            return JSON.stringify(sortedParams);
+          },
         },
       },
     },
@@ -78,6 +106,15 @@ export default defineConfig({
         query: {
           useQuery: true,
           useInfinite: false,
+          queryKey: (params) => {
+            const sortedParams = Object.keys(params || {})
+              .sort()
+              .reduce((acc, key) => {
+                acc[key] = params[key];
+                return acc;
+              }, {} as Record<string, unknown>);
+            return JSON.stringify(sortedParams);
+          },
         },
       },
     },

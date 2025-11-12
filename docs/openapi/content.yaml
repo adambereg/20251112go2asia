@@ -18,6 +18,11 @@ paths:
       tags:
         - Countries
       parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации (опционально)
         - name: limit
           in: query
           schema:
@@ -25,26 +30,32 @@ paths:
             default: 50
             minimum: 1
             maximum: 100
+          description: Количество элементов на странице
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
             minimum: 0
+          description: Смещение (используется если cursor не указан)
       responses:
         '200':
           description: Список стран
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Country'
-                  total:
-                    type: integer
+                allOf:
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Country'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -67,8 +78,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Country'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -84,6 +103,11 @@ paths:
           schema:
             type: string
           description: Фильтр по стране
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации (опционально)
         - name: limit
           in: query
           schema:
@@ -91,26 +115,32 @@ paths:
             default: 50
             minimum: 1
             maximum: 100
+          description: Количество элементов на странице
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
             minimum: 0
+          description: Смещение (используется если cursor не указан)
       responses:
         '200':
           description: Список городов
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/City'
-                  total:
-                    type: integer
+                allOf:
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/City'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -133,8 +163,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/City'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -156,6 +194,11 @@ paths:
             type: string
             enum: [attraction, restaurant, hotel, shop, other]
           description: Категория места
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации (опционально)
         - name: limit
           in: query
           schema:
@@ -163,26 +206,32 @@ paths:
             default: 50
             minimum: 1
             maximum: 100
+          description: Количество элементов на странице
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
             minimum: 0
+          description: Смещение (используется если cursor не указан)
       responses:
         '200':
           description: Список мест
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Place'
-                  total:
-                    type: integer
+                allOf:
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Place'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -205,8 +254,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Place'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -226,14 +283,19 @@ paths:
           in: query
           schema:
             type: string
-            format: date
-          description: Начало периода
+            format: date-time
+          description: Начало периода (RFC 3339)
         - name: endDate
           in: query
           schema:
             type: string
-            format: date
-          description: Конец периода
+            format: date-time
+          description: Конец периода (RFC 3339)
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации (опционально)
         - name: limit
           in: query
           schema:
@@ -241,26 +303,32 @@ paths:
             default: 50
             minimum: 1
             maximum: 100
+          description: Количество элементов на странице
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
             minimum: 0
+          description: Смещение (используется если cursor не указан)
       responses:
         '200':
           description: Список событий
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Event'
-                  total:
-                    type: integer
+                allOf:
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -283,8 +351,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -300,6 +376,11 @@ paths:
           schema:
             type: string
           description: Категория статьи
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации (опционально)
         - name: limit
           in: query
           schema:
@@ -307,26 +388,32 @@ paths:
             default: 20
             minimum: 1
             maximum: 100
+          description: Количество элементов на странице
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
             minimum: 0
+          description: Смещение (используется если cursor не указан)
       responses:
         '200':
           description: Список статей
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Article'
-                  total:
-                    type: integer
+                allOf:
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Article'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -349,13 +436,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Article'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
 components:
   schemas:
+    PaginationResponse:
+      type: object
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          description: Массив элементов
+        total:
+          type: integer
+          description: Общее количество элементов
+        nextCursor:
+          type: string
+          nullable: true
+          description: Курсор для следующей страницы (null если больше нет данных)
+        hasMore:
+          type: boolean
+          description: Есть ли ещё данные
+
     Country:
       type: object
       required:
@@ -596,6 +711,18 @@ components:
               description: Ключ поля с ошибкой (для валидации)
 
   responses:
+    BadRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: BAD_REQUEST
+              message: Invalid request parameters
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
     NotFound:
       description: Ресурс не найден
       content:
@@ -607,6 +734,32 @@ components:
               code: NOT_FOUND
               message: Resource not found
               traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    RateLimitExceeded:
+      description: Превышен лимит запросов
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: Rate limit exceeded. Try again later.
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Лимит запросов
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Оставшееся количество запросов
+        X-RateLimit-Reset:
+          schema:
+            type: string
+            format: date-time
+          description: Время сброса лимита
 
     InternalError:
       description: Внутренняя ошибка сервера

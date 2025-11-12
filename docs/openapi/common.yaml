@@ -1,0 +1,190 @@
+# Общие компоненты для всех OpenAPI спецификаций
+openapi: 3.1.0
+info:
+  title: Go2Asia Common Components
+  version: 0.1.0
+
+components:
+  schemas:
+    PaginationParams:
+      type: object
+      properties:
+        cursor:
+          type: string
+          description: Курсор для пагинации (опционально, для cursor-based пагинации)
+        limit:
+          type: integer
+          default: 50
+          minimum: 1
+          maximum: 100
+          description: Количество элементов на странице
+        offset:
+          type: integer
+          default: 0
+          minimum: 0
+          description: Смещение для offset-based пагинации (используется если cursor не указан)
+
+    PaginationResponse:
+      type: object
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          description: Массив элементов
+        total:
+          type: integer
+          description: Общее количество элементов
+        nextCursor:
+          type: string
+          nullable: true
+          description: Курсор для следующей страницы (null если больше нет данных)
+        hasMore:
+          type: boolean
+          description: Есть ли ещё данные
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - traceId
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - BAD_REQUEST
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - CONFLICT
+                - RATE_LIMIT_EXCEEDED
+                - INTERNAL_ERROR
+                - SERVICE_UNAVAILABLE
+            message:
+              type: string
+            traceId:
+              type: string
+              format: uuid
+            key:
+              type: string
+              description: Ключ поля с ошибкой (для валидации)
+
+  responses:
+    BadRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: BAD_REQUEST
+              message: Invalid request parameters
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    Unauthorized:
+      description: Требуется авторизация
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    Forbidden:
+      description: Доступ запрещён
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: FORBIDDEN
+              message: Access denied
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: NOT_FOUND
+              message: Resource not found
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    Conflict:
+      description: Конфликт
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: CONFLICT
+              message: Conflict occurred
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    RateLimitExceeded:
+      description: Превышен лимит запросов
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: Rate limit exceeded. Try again later.
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Лимит запросов
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Оставшееся количество запросов
+        X-RateLimit-Reset:
+          schema:
+            type: string
+            format: date-time
+          description: Время сброса лимита
+
+    InternalError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: An internal error occurred
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    ServiceUnavailable:
+      description: Сервис недоступен
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: SERVICE_UNAVAILABLE
+              message: Service temporarily unavailable
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+

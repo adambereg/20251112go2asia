@@ -26,8 +26,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Balance'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -40,6 +44,11 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации (опционально)
         - name: limit
           in: query
           schema:
@@ -47,28 +56,34 @@ paths:
             default: 50
             minimum: 1
             maximum: 100
+          description: Количество элементов на странице
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
             minimum: 0
+          description: Смещение (используется если cursor не указан)
       responses:
         '200':
           description: История транзакций
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Transaction'
-                  total:
-                    type: integer
+                allOf:
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -98,8 +113,12 @@ paths:
                 $ref: '#/components/schemas/Transaction'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -138,6 +157,26 @@ paths:
 
 components:
   schemas:
+    PaginationResponse:
+      type: object
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          description: Массив элементов
+        total:
+          type: integer
+          description: Общее количество элементов
+        nextCursor:
+          type: string
+          nullable: true
+          description: Курсор для следующей страницы (null если больше нет данных)
+        hasMore:
+          type: boolean
+          description: Есть ли ещё данные
+
     Balance:
       type: object
       required:
