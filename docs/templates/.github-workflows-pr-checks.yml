@@ -1,0 +1,142 @@
+# GitHub Actions: PR Checks
+# Разместить в: .github/workflows/pr-checks.yml
+
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-build:
+    name: Lint, Typecheck & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Lint
+        run: pnpm lint
+      
+      - name: Typecheck
+        run: pnpm typecheck
+      
+      - name: Build
+        run: pnpm build
+
+  validate-openapi:
+    name: Validate OpenAPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Spectral
+        run: npm install -g @stoplight/spectral-cli
+      
+      - name: Validate OpenAPI files
+        run: spectral lint docs/openapi/**/*.yaml
+
+  generate-and-check:
+    name: Generate Types & SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Generate types and SDK
+        run: pnpm gen:all
+      
+      - name: Check for changes
+        run: |
+          if [ -n "$(git diff --exit-code packages/types packages/sdk)" ]; then
+            echo "❌ Generated types/SDK differ from committed files"
+            echo "Run 'pnpm gen:all' and commit the changes"
+            git diff packages/types packages/sdk
+            exit 1
+          fi
+
+  contract-tests:
+    name: Contract Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-preview]
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Schemathesis
+        run: pip install schemathesis
+      
+      - name: Run contract tests
+        env:
+          BASE_URL: ${{ env.PREVIEW_URL || 'https://api-preview.go2asia.space' }}
+        run: |
+          schemathesis run \
+            --base-url "$BASE_URL" \
+            --checks all \
+            --hypothesis-max-examples=20 \
+            docs/openapi/content.yaml \
+            docs/openapi/auth.yaml \
+            docs/openapi/token.yaml \
+            docs/openapi/referral.yaml
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-preview]
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Install Playwright
+        run: pnpm exec playwright install --with-deps
+      
+      - name: Run E2E tests
+        env:
+          BASE_URL: ${{ env.PREVIEW_URL || 'https://preview.go2asia.space' }}
+        run: pnpm test:e2e
+

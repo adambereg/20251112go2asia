@@ -1,0 +1,56 @@
+# Spectral Configuration для валидации OpenAPI
+# Разместить в: spectral.yaml (корень проекта)
+
+extends: ["spectral:oas", "spectral:asyncapi"]
+
+rules:
+  # Запретить использование anyOf/oneOf без примеров
+  oas3-valid-schema-example:
+    severity: warn
+  
+  # Требовать описания для всех операций
+  operation-description:
+    severity: error
+  
+  # Требовать теги для операций
+  operation-tags:
+    severity: error
+  
+  # Требовать summary для операций
+  operation-summary:
+    severity: error
+  
+  # Запретить пустые описания
+  operation-description:
+    severity: error
+  
+  # Требовать примеры для схем
+  schema-example:
+    severity: warn
+  
+  # Требовать формат для строковых полей (email, date, uuid и т.д.)
+  schema-format-validation:
+    severity: warn
+  
+  # Запретить использование deprecated без альтернативы
+  no-deprecated-operations:
+    severity: warn
+  
+  # Требовать версионирование API
+  info-version:
+    severity: error
+  
+  # Требовать контакты
+  info-contact:
+    severity: warn
+  
+  # Единый формат ошибок
+  custom-error-format:
+    description: "Все ошибки должны использовать единый формат ErrorResponse"
+    severity: error
+    given: "$.paths[*][*].responses[*].content['application/json'].schema"
+    then:
+      function: pattern
+      functionOptions:
+        match: ".*ErrorResponse.*"
+

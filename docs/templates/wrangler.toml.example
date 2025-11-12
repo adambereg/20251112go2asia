@@ -1,0 +1,48 @@
+# Cloudflare Workers Configuration Template
+# Скопировать в каждый сервис: services/{service-name}/wrangler.toml
+# Заменить {SERVICE_NAME} на имя сервиса
+
+name = "{SERVICE_NAME}"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Variables (Plaintext) - для разных окружений
+[env.production]
+vars = { 
+  NODE_ENV = "production",
+  # Добавить URL других сервисов если нужны
+  # AUTH_SERVICE_URL = "https://auth-service-production.workers.dev"
+}
+
+[env.staging]
+name = "{SERVICE_NAME}-staging"
+vars = { 
+  NODE_ENV = "staging",
+  # AUTH_SERVICE_URL = "https://auth-service-staging.workers.dev"
+}
+
+# Routes для production (если нужен кастомный домен)
+# [env.production]
+# routes = [
+#   { pattern = "{service}.go2asia.space/*", zone_name = "go2asia.space" }
+# ]
+
+# Observability settings
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1
+
+# Secrets должны быть установлены через:
+# wrangler secret put SECRET_NAME --env production
+# или через Cloudflare Dashboard
+

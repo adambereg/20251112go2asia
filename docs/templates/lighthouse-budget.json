@@ -1,0 +1,131 @@
+{
+  "budgets": [
+    {
+      "path": "/",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 1800
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 2500
+        },
+        {
+          "metric": "cumulative-layout-shift",
+          "budget": 0.1
+        },
+        {
+          "metric": "total-blocking-time",
+          "budget": 300
+        },
+        {
+          "metric": "speed-index",
+          "budget": 3400
+        }
+      ],
+      "resourceSizes": [
+        {
+          "resourceType": "script",
+          "budget": 300
+        },
+        {
+          "resourceType": "stylesheet",
+          "budget": 50
+        },
+        {
+          "resourceType": "image",
+          "budget": 500
+        },
+        {
+          "resourceType": "font",
+          "budget": 100
+        },
+        {
+          "resourceType": "document",
+          "budget": 50
+        },
+        {
+          "resourceType": "total",
+          "budget": 1000
+        }
+      ],
+      "resourceCounts": [
+        {
+          "resourceType": "script",
+          "budget": 10
+        },
+        {
+          "resourceType": "stylesheet",
+          "budget": 3
+        },
+        {
+          "resourceType": "image",
+          "budget": 20
+        },
+        {
+          "resourceType": "font",
+          "budget": 5
+        },
+        {
+          "resourceType": "total",
+          "budget": 50
+        }
+      ]
+    },
+    {
+      "path": "/atlas/*",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 2000
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 3000
+        },
+        {
+          "metric": "cumulative-layout-shift",
+          "budget": 0.15
+        },
+        {
+          "metric": "total-blocking-time",
+          "budget": 400
+        },
+        {
+          "metric": "speed-index",
+          "budget": 4000
+        }
+      ]
+    },
+    {
+      "path": "/blog/*",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 2000
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 3000
+        },
+        {
+          "metric": "cumulative-layout-shift",
+          "budget": 0.15
+        },
+        {
+          "metric": "total-blocking-time",
+          "budget": 400
+        },
+        {
+          "metric": "speed-index",
+          "budget": 4000
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "budgetPath": "./docs/templates/lighthouse-budget.json"
+  }
+}
+

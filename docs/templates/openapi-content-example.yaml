@@ -1,0 +1,259 @@
+# OpenAPI 3.1 Specification для Content Service
+# Разместить в: docs/openapi/content.yaml
+# Это пример с базовыми схемами - дополнить реальными endpoints
+
+openapi: 3.1.0
+info:
+  title: Go2Asia Content API
+  version: 1.0.0
+  description: API для работы с контентом (Atlas, Pulse, Blog)
+  contact:
+    name: Go2Asia API Support
+    email: api@go2asia.space
+
+servers:
+  - url: https://api.go2asia.space/v1/api/content
+    description: Production
+  - url: https://api-staging.go2asia.space/v1/api/content
+    description: Staging
+
+tags:
+  - name: Atlas
+    description: Страны, города, места
+  - name: Pulse
+    description: События и мероприятия
+  - name: Blog
+    description: Статьи и новости
+
+paths:
+  /countries:
+    get:
+      tags: [Atlas]
+      summary: Получить список стран
+      description: Возвращает список всех стран с пагинацией
+      operationId: getCountries
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountriesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /countries/{id}:
+    get:
+      tags: [Atlas]
+      summary: Получить страну по ID
+      operationId: getCountryById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      description: Количество элементов на странице
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Cursor:
+      name: cursor
+      in: query
+      description: Курсор для пагинации (cursor-based)
+      required: false
+      schema:
+        type: string
+
+  schemas:
+    Country:
+      type: object
+      required: [id, name, code]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          example: "Вьетнам"
+        code:
+          type: string
+          minLength: 2
+          maxLength: 3
+          example: "VN"
+        flag:
+          type: string
+          format: uri
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        citiesCount:
+          type: integer
+          example: 12
+        placesCount:
+          type: integer
+          example: 45
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CountriesResponse:
+      type: object
+      required: [items, hasMore]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Country'
+        nextCursor:
+          type: string
+          nullable: true
+          description: Курсор для следующей страницы
+        hasMore:
+          type: boolean
+          description: Есть ли ещё данные
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Код ошибки (см. матрицу кодов)
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              description: Сообщение об ошибке
+              example: "Invalid request parameters"
+            key:
+              type: string
+              nullable: true
+              description: Ключ поля с ошибкой (для валидации)
+              example: "limit"
+            traceId:
+              type: string
+              format: uuid
+              description: ID запроса для трейсинга
+              example: "123e4567-e89b-12d3-a456-426614174000"
+
+  responses:
+    BadRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "VALIDATION_ERROR"
+              message: "Invalid limit parameter"
+              key: "limit"
+              traceId: "123e4567-e89b-12d3-a456-426614174000"
+
+    Unauthorized:
+      description: Требуется авторизация
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "UNAUTHORIZED"
+              message: "Authentication required"
+              traceId: "123e4567-e89b-12d3-a456-426614174000"
+
+    Forbidden:
+      description: Доступ запрещён
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "FORBIDDEN"
+              message: "Insufficient permissions"
+              traceId: "123e4567-e89b-12d3-a456-426614174000"
+
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "NOT_FOUND"
+              message: "Resource not found"
+              traceId: "123e4567-e89b-12d3-a456-426614174000"
+
+    Conflict:
+      description: Конфликт (например, дубликат)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "CONFLICT"
+              message: "Resource already exists"
+              traceId: "123e4567-e89b-12d3-a456-426614174000"
+
+    TooManyRequests:
+      description: Превышен лимит запросов
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "RATE_LIMIT_EXCEEDED"
+              message: "Rate limit exceeded. Try again later."
+              traceId: "123e4567-e89b-12d3-a456-426614174000"
+
+    InternalServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "INTERNAL_ERROR"
+              message: "An internal error occurred"
+              traceId: "123e4567-e89b-12d3-a456-426614174000"
+
