@@ -78,3 +78,37 @@ jobs:
             exit 1
           fi
           echo "✓ Only jose is used for JWT"
+
+  # Contract tests будут добавлены после настройки preview deployments
+  # contract-tests:
+  #   runs-on: ubuntu-latest
+  #   needs: [deploy-preview]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install schemathesis
+  #       run: pip install schemathesis
+  #     - name: Run contract tests
+  #       run: |
+  #         schemathesis run \
+  #           --base-url ${{ env.PREVIEW_URL }} \
+  #           --checks all \
+  #           docs/openapi/content.yaml \
+  #           docs/openapi/auth.yaml \
+  #           docs/openapi/token.yaml \
+  #           docs/openapi/referral.yaml
+
+  # E2E tests будут добавлены после настройки Playwright
+  # e2e-tests:
+  #   runs-on: ubuntu-latest
+  #   needs: [deploy-preview]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: pnpm/action-setup@v2
+  #       with:
+  #         version: 8
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         cache: 'pnpm'
+  #     - run: pnpm install --frozen-lockfile
+  #     - run: pnpm test:e2e

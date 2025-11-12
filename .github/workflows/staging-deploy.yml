@@ -1,0 +1,80 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.go2asia.space
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build
+        run: pnpm build
+      
+      - name: Run database migrations (staging)
+        run: pnpm db:migrate:staging
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        continue-on-error: true # Пока миграции не настроены
+      
+      - name: Deploy API Gateway to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/api-gateway
+          command: deploy
+        continue-on-error: true # Пока Cloudflare не настроен
+      
+      - name: Deploy Services to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: services/content-service
+          command: deploy
+        continue-on-error: true
+      
+      - name: Deploy PWA to Netlify (staging)
+        uses: netlify/actions/cli@master
+        with:
+          args: deploy --dir=apps/go2asia-pwa-shell/.next --prod=true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_STAGING_SITE_ID }}
+        continue-on-error: true # Пока Netlify не настроен
+      
+      - name: Smoke tests (staging)
+        run: pnpm test:smoke:staging
+        env:
+          API_URL: https://api-staging.go2asia.space
+        continue-on-error: true # Пока тесты не настроены
+      
+      - name: Notify deployment status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            const message = `${status} Staging deployment ${'${{ job.status }}'}`;
+            console.log(message);
+
