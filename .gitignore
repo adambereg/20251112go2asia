@@ -61,3 +61,10 @@ wrangler.toml.local
 logs/
 *.log
 
+# pnpm
+.pnpm-store/
+pnpm-lock.yaml
+
+# Turborepo
+.turbo/
+

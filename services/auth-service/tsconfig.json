@@ -1,0 +1,10 @@
+{
+  "extends": "../../packages/config/tsconfig/cloudflare.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+

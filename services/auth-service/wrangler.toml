@@ -1,0 +1,17 @@
+name = "go2asia-auth-service"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[env.production]
+routes = [
+  { pattern = "auth.go2asia.space/*", zone_name = "go2asia.space" }
+]
+
+[env.staging]
+routes = [
+  { pattern = "auth-staging.go2asia.space/*", zone_name = "go2asia.space" }
+]
+
+[vars]
+ENVIRONMENT = "development"
+

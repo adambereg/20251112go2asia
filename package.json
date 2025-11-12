@@ -1,0 +1,44 @@
+{
+  "name": "go2asia-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Go2Asia - цифровая экосистема путешествий, жизни и бизнеса в Юго-Восточной Азии",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "gen:types": "orval --types",
+    "gen:sdk": "orval --sdk",
+    "gen:all": "pnpm gen:types && pnpm gen:sdk",
+    "validate:openapi": "spectral lint docs/openapi/**/*.yaml",
+    "db:migrate:generate": "turbo run db:migrate:generate",
+    "db:migrate:up": "turbo run db:migrate:up",
+    "db:migrate:down": "turbo run db:migrate:down",
+    "db:migrate:status": "turbo run db:migrate:status",
+    "db:seed": "turbo run db:seed"
+  },
+  "devDependencies": {
+    "@orval/core": "^7.3.4",
+    "@stoplight/spectral-cli": "^6.13.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
+

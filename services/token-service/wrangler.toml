@@ -1,0 +1,17 @@
+name = "go2asia-token-service"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[env.production]
+routes = [
+  { pattern = "token.go2asia.space/*", zone_name = "go2asia.space" }
+]
+
+[env.staging]
+routes = [
+  { pattern = "token-staging.go2asia.space/*", zone_name = "go2asia.space" }
+]
+
+[vars]
+ENVIRONMENT = "development"
+

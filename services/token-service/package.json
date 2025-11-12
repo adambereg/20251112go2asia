@@ -1,0 +1,30 @@
+{
+  "name": "@go2asia/token-service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "db:migrate:generate": "drizzle-kit generate",
+    "db:migrate:up": "drizzle-kit migrate",
+    "db:migrate:down": "drizzle-kit drop",
+    "db:migrate:status": "drizzle-kit check"
+  },
+  "dependencies": {
+    "hono": "^3.12.0",
+    "drizzle-orm": "^0.29.0",
+    "postgres": "^3.4.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231121.0",
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.10.9",
+    "drizzle-kit": "^0.20.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.19.0"
+  }
+}
+
