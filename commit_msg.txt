@@ -1,8 +1,6 @@
-Завершение Фазы 0: Lighthouse, алёрты, SLO/SLI, runbooks, Go/No-Go
+Добавлено руководство по миграции существующей инфраструктуры
 
-- Добавлен Lighthouse CI в preview и staging workflows
-- Обновлена документация по Cloudflare Alerts с детальными инструкциями
-- Создан документ SLO/SLI с метриками и дашбордами
-- Обновлены Runbooks с P0 инцидентами (5xx, latency, timeouts, Clerk JWKS)
-- Создан Go/No-Go чеклист для принятия Фазы 0
+- Создан MIGRATION_GUIDE.md с пошаговыми инструкциями
+- Обновлены CI_CD_SETUP.md и DATABASE_SETUP.md со ссылками на миграцию
+- Описаны шаги для перепривязки Netlify, Cloudflare, Clerk, Neon к новому репо
 
