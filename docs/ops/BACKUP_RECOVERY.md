@@ -1,250 +1,216 @@
-# Neon: Backup и Recovery Playbook
+# Backup & Recovery Guide
 
-**Версия:** 1.0  
-**Дата:** 2025-11-09
+## Обзор
 
----
+Проект использует **Neon PostgreSQL** с Point-in-Time Recovery (PITR) и автоматическими бэкапами.
 
-## Настройка Point-in-Time Recovery (PITR)
+## Настройка бэкапов в Neon
 
-### 1. Включить PITR в Neon
+### 1. Point-in-Time Recovery (PITR)
 
-1. Открыть **Neon Dashboard** → Project → Settings
-2. Включить **Point-in-Time Recovery**
-3. Выбрать период хранения (рекомендуется 7 дней для staging, 30 дней для production)
+1. Откройте проект в [Neon Console](https://console.neon.tech/)
+2. Перейдите в **Settings** → **Backups**
+3. Включите **Point-in-Time Recovery**
+4. Настройте **Retention period** (минимум 30 дней)
 
-### 2. Проверка PITR
+### 2. Автоматические бэкапы
 
-```sql
--- Проверить, что PITR включен
-SELECT 
-  name,
-  setting,
-  unit
-FROM pg_settings
-WHERE name LIKE '%recovery%';
+Neon автоматически создаёт бэкапы:
+- **Ежедневно** в указанное время
+- **Retention:** минимум 30 дней (настраивается)
+- **Хранение:** в Neon Cloud Storage
+
+## Восстановление из бэкапа
+
+### Восстановление из snapshot
+
+1. В Neon Console откройте проект
+2. Перейдите в **Backups**
+3. Выберите нужный snapshot
+4. Нажмите **Restore**
+5. Выберите опцию:
+   - **Restore to current branch** - восстановить текущую ветку
+   - **Create new branch** - создать новую ветку из snapshot
+
+### Branch Restore (рекомендуется для тестирования)
+
+**Использование:**
+1. Создайте новую ветку из snapshot
+2. Протестируйте восстановление
+3. Если всё ок - можно переключиться на эту ветку или удалить её
+
+**Пример:**
+```bash
+# В Neon Console создайте branch из snapshot
+# Затем в connection string используйте branch-specific endpoint
+DATABASE_URL=postgresql://user:password@branch-name-host.neon.tech/database
 ```
 
----
+### Point-in-Time Recovery
 
-## Процесс восстановления
+Для восстановления на конкретный момент времени:
 
-### Сценарий 1: Восстановление на определённую точку времени
+1. В Neon Console откройте проект
+2. Перейдите в **Backups** → **Point-in-Time Recovery**
+3. Выберите момент времени (до 30 дней назад)
+4. Создайте новую ветку из этого момента
+5. Протестируйте восстановление
+6. Если всё ок - переключитесь на эту ветку
 
-**Когда использовать:** Потеря данных, коррупция данных, ошибочное удаление
+## Rollback миграций
 
-**Шаги:**
+### Автоматический rollback в CI/CD
 
-1. **Определить точку восстановления**
+Production deploy workflow автоматически откатывает миграции при неудачных smoke tests:
+
+```bash
+# Автоматически выполняется при failure
+cd services/content-service
+DATABASE_URL=$PRODUCTION_DATABASE_URL pnpm db:migrate:down
+```
+
+### Ручной rollback
+
+**Откат последней миграции:**
+```bash
+cd services/content-service
+DATABASE_URL=$PRODUCTION_DATABASE_URL pnpm db:migrate:down
+```
+
+**Проверка статуса:**
+```bash
+pnpm db:migrate:status
+```
+
+## Восстановление после инцидента
+
+### Сценарий 1: Ошибочная миграция
+
+1. **Немедленно:** Откатите миграцию
    ```bash
-   # В Neon Dashboard → Backups
-   # Выбрать нужную точку времени (timestamp)
-   ```
-
-2. **Создать новый branch для восстановления**
-   ```bash
-   # Через Neon Dashboard:
-   # Backups → Select restore point → Create branch
-   # Или через API:
-   curl -X POST "https://console.neon.tech/api/v1/projects/{project_id}/branches" \
-     -H "Authorization: Bearer {api_key}" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "branch": {
-         "name": "recovery-2025-11-09",
-         "parent_id": "{parent_branch_id}",
-         "point_in_time": "2025-11-09T10:00:00Z"
-       }
-     }'
-   ```
-
-3. **Проверить данные на recovery branch**
-   ```bash
-   # Получить connection string для recovery branch
-   # Подключиться и проверить данные
-   psql "postgresql://user:password@recovery-branch.neon.tech/dbname"
-   ```
-
-4. **Валидация данных**
-   ```sql
-   -- Проверить количество записей
-   SELECT COUNT(*) FROM countries;
-   SELECT COUNT(*) FROM cities;
-   SELECT COUNT(*) FROM places;
-   
-   -- Проверить целостность данных
-   SELECT * FROM countries WHERE id NOT IN (SELECT DISTINCT country_id FROM cities);
-   ```
-
-5. **Промоут recovery branch в production**
-   ```bash
-   # В Neon Dashboard:
-   # Branches → recovery-2025-11-09 → Promote to primary
-   # Или через API:
-   curl -X POST "https://console.neon.tech/api/v1/projects/{project_id}/branches/{recovery_branch_id}/set_as_primary" \
-     -H "Authorization: Bearer {api_key}"
-   ```
-
-6. **Обновить DATABASE_URL в Cloudflare**
-   ```bash
-   # Обновить Secret в Cloudflare
-   wrangler secret put DATABASE_URL --env production
-   # Ввести новый connection string
-   ```
-
-7. **Проверить работу приложения**
-   ```bash
-   # Smoke тесты
-   curl https://api.go2asia.space/health
-   curl https://api.go2asia.space/ready
-   ```
-
----
-
-### Сценарий 2: Выборочное восстановление таблицы
-
-**Когда использовать:** Коррупция данных в одной таблице
-
-**Шаги:**
-
-1. **Создать recovery branch** (как в Сценарии 1, шаг 2)
-
-2. **Экспортировать данные из recovery branch**
-   ```bash
-   # Подключиться к recovery branch
-   psql "postgresql://user:password@recovery-branch.neon.tech/dbname" \
-     -c "COPY (SELECT * FROM countries) TO STDOUT CSV HEADER" > countries_backup.csv
-   ```
-
-3. **Очистить таблицу в production**
-   ```sql
-   -- В production branch
-   TRUNCATE TABLE countries CASCADE;
-   ```
-
-4. **Импортировать данные в production**
-   ```bash
-   psql "postgresql://user:password@production.neon.tech/dbname" \
-     -c "COPY countries FROM STDIN CSV HEADER" < countries_backup.csv
-   ```
-
-5. **Проверить целостность**
-   ```sql
-   -- Проверить foreign keys
-   SELECT * FROM cities WHERE country_id NOT IN (SELECT id FROM countries);
-   ```
-
----
-
-### Сценарий 3: Восстановление после миграции
-
-**Когда использовать:** Миграция сломала production
-
-**Шаги:**
-
-1. **Откатить миграцию**
-   ```bash
-   cd services/content-service
    pnpm db:migrate:down
    ```
 
-2. **Если откат не помог — восстановить из бэкапа**
-   - Следовать Сценарию 1
-   - Выбрать точку времени до миграции
-
----
-
-## Тестирование восстановления (ежемесячно)
-
-### Процесс
-
-1. **Создать тестовый branch**
+2. **Проверьте:** Статус БД
    ```bash
-   # В Neon Dashboard создать branch от production
-   # Название: test-recovery-YYYY-MM-DD
+   pnpm db:migrate:status
    ```
 
-2. **Восстановить на точку времени неделю назад**
-   ```bash
-   # Выбрать точку времени 7 дней назад
-   # Создать recovery branch
-   ```
+3. **Если откат не помог:** Используйте PITR
+   - Восстановите из snapshot до миграции
+   - Создайте новую ветку
+   - Протестируйте
+   - Переключитесь на восстановленную ветку
 
-3. **Проверить данные**
-   ```sql
-   -- Проверить количество записей
-   -- Проверить целостность
-   -- Проверить критичные данные
-   ```
+### Сценарий 2: Потеря данных
 
-4. **Удалить тестовый branch**
-   ```bash
-   # После проверки удалить test-recovery branch
-   ```
+1. **Определите момент потери данных**
+2. **Используйте PITR** для восстановления на момент до потери
+3. **Создайте новую ветку** из этого момента
+4. **Протестируйте** восстановление
+5. **Переключитесь** на восстановленную ветку
 
----
+### Сценарий 3: Коррупция БД
 
-## Автоматические бэкапы
-
-### Настройка в Neon
-
-Neon автоматически создаёт бэкапы:
-- **Production:** Каждые 24 часа
-- **Staging:** Каждые 24 часа
-- **Хранение:** 7 дней (staging), 30 дней (production)
-
-### Экспорт бэкапов в S3 (опционально)
-
-Для долгосрочного хранения можно экспортировать бэкапы в S3:
-
-```bash
-# Использовать pg_dump для экспорта
-pg_dump "postgresql://user:password@host/dbname" \
-  | gzip \
-  | aws s3 cp - s3://go2asia-backups/db-backup-$(date +%Y%m%d).sql.gz
-```
-
----
+1. **Создайте snapshot** текущего состояния (для анализа)
+2. **Восстановите из последнего рабочего snapshot**
+3. **Проверьте логи** для выявления причины
+4. **Примените исправления** если необходимо
 
 ## Мониторинг бэкапов
 
 ### Проверка статуса бэкапов
 
-```bash
-# Через Neon API
-curl -X GET "https://console.neon.tech/api/v1/projects/{project_id}/backups" \
-  -H "Authorization: Bearer {api_key}"
-```
+В Neon Console → **Backups**:
+- Последний успешный бэкап
+- Статус PITR
+- Доступные snapshots
 
 ### Алерты
 
-Настроить алерты на:
-- Отсутствие бэкапа за последние 24 часа
-- Ошибки восстановления
-- Недостаточное место для бэкапов
+Настройте алерты в Neon Console:
+- **Backup failed** - уведомление при неудачном бэкапе
+- **Retention warning** - предупреждение при приближении к лимиту retention
 
----
+## Best Practices
 
-## RTO и RPO
+1. **Всегда тестируйте восстановление** на staging перед production
+2. **Используйте branch restore** для безопасного тестирования
+3. **Документируйте** все восстановления в runbook
+4. **Проверяйте статус миграций** после восстановления
+5. **Делайте snapshot** перед критическими операциями
 
-**Recovery Time Objective (RTO):** <4 часов  
-**Recovery Point Objective (RPO):** <24 часов
+## Runbook: Восстановление production БД
 
----
+### Шаги:
 
-## Чек-лист восстановления
+1. **Остановите** production deploy workflow (если запущен)
 
-- [ ] Определена точка восстановления
-- [ ] Создан recovery branch
-- [ ] Проверены данные на recovery branch
-- [ ] Валидация данных пройдена
-- [ ] Recovery branch промоутнут в production
-- [ ] DATABASE_URL обновлён в Cloudflare
-- [ ] Smoke тесты пройдены
-- [ ] Мониторинг проверен
-- [ ] Команда уведомлена
+2. **Определите** момент восстановления:
+   - Время последнего рабочего состояния
+   - Или конкретный snapshot ID
 
----
+3. **Создайте branch** из snapshot:
+   - Neon Console → Backups → Select snapshot → Create branch
 
-**Последнее обновление:** 2025-11-09
+4. **Протестируйте** восстановление:
+   ```bash
+   # Используйте branch-specific connection string
+   DATABASE_URL=postgresql://user:password@branch-name-host.neon.tech/database
+   pnpm db:migrate:status
+   ```
 
+5. **Если всё ок:**
+   - Переключите production на восстановленную ветку
+   - Или обновите connection string в secrets
+
+6. **Проверьте** работоспособность:
+   - Smoke tests
+   - Health checks
+   - Критические endpoints
+
+7. **Документируйте** инцидент и восстановление
+
+## Где найти snapshot/branch ID
+
+### В Neon Console:
+
+1. **Backups** → **Snapshots**:
+   - Список всех snapshots
+   - ID каждого snapshot
+   - Время создания
+
+2. **Branches**:
+   - Список всех веток
+   - Branch-specific connection strings
+   - История изменений
+
+### В API:
+
+```bash
+# Получить список snapshots через Neon API
+curl -H "Authorization: Bearer $NEON_API_KEY" \
+  https://console.neon.tech/api/v1/projects/{project_id}/branches/{branch_id}/snapshots
+```
+
+## Troubleshooting
+
+### Проблема: Не могу найти нужный snapshot
+
+**Решение:**
+- Проверьте retention period (может быть меньше 30 дней)
+- Используйте PITR для восстановления на конкретный момент времени
+
+### Проблема: Branch restore не работает
+
+**Решение:**
+- Проверьте connection string (должен быть branch-specific)
+- Убедитесь что branch создан успешно
+- Проверьте права доступа
+
+### Проблема: Миграции не применяются после восстановления
+
+**Решение:**
+1. Проверьте статус миграций: `pnpm db:migrate:status`
+2. Примените недостающие миграции: `pnpm db:migrate:up`
+3. Проверьте что таблица `schema_migrations` существует

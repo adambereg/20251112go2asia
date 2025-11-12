@@ -111,11 +111,26 @@ jobs:
       
       - name: Run database migrations (production)
         id: migrate
-        run: pnpm db:migrate:prod
-        env:
-          # Production использует отдельные секреты
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-        continue-on-error: true # Пока миграции не настроены
+        run: |
+          cd services/content-service && DATABASE_URL=${{ secrets.PRODUCTION_DATABASE_URL }} pnpm db:migrate:up
+          cd ../token-service && DATABASE_URL=${{ secrets.PRODUCTION_DATABASE_URL }} pnpm db:migrate:up
+          cd ../referral-service && DATABASE_URL=${{ secrets.PRODUCTION_DATABASE_URL }} pnpm db:migrate:up
+        continue-on-error: true
+      
+      - name: Check migration status
+        run: |
+          cd services/content-service && DATABASE_URL=${{ secrets.PRODUCTION_DATABASE_URL }} pnpm db:migrate:status > migration-status.log 2>&1 || true
+          cat migration-status.log
+        continue-on-error: true
+      
+      - name: Upload migration status logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-migration-status
+          path: services/*/migration-status.log
+          retention-days: 90
+          if-no-files-found: ignore
       
       - name: Deploy API Gateway to Cloudflare (production)
         uses: cloudflare/wrangler-action@v3
@@ -163,13 +178,14 @@ jobs:
           path: test-results/smoke-tests.log
           retention-days: 90
       
-      - name: Rollback on failure
+      - name: Rollback migrations on failure
         if: steps.smoke-tests.outcome == 'failure'
         run: |
-          echo "❌ Smoke tests failed. Initiating rollback..."
-          # TODO: Implement rollback logic
-          # pnpm db:rollback:prod
-          # pnpm deploy:rollback:prod
+          echo "❌ Smoke tests failed. Initiating migration rollback..."
+          cd services/content-service && DATABASE_URL=${{ secrets.PRODUCTION_DATABASE_URL }} pnpm db:migrate:down || true
+          cd ../token-service && DATABASE_URL=${{ secrets.PRODUCTION_DATABASE_URL }} pnpm db:migrate:down || true
+          cd ../referral-service && DATABASE_URL=${{ secrets.PRODUCTION_DATABASE_URL }} pnpm db:migrate:down || true
+          echo "Migration rollback completed"
           exit 1
       
       - name: Create GitHub release

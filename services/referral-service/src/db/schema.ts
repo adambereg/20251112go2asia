@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, varchar, integer, bigint } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, varchar, integer, bigint, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 /**
@@ -16,7 +16,11 @@ export const referrals = pgTable('referrals', {
   activatedAt: timestamp('activated_at'), // Когда реферал стал активным
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  referrerIdIdx: index('referrals_referrer_id_idx').on(table.referrerId),
+  referredIdIdx: index('referrals_referred_id_idx').on(table.referredId),
+  statusIdx: index('referrals_status_idx').on(table.status),
+}));
 
 // Статистика рефералов
 export const referralStats = pgTable('referral_stats', {
@@ -27,7 +31,9 @@ export const referralStats = pgTable('referral_stats', {
   totalEarned: bigint('total_earned', { mode: 'number' }).default(0).notNull(), // Points заработано от рефералов
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index('referral_stats_user_id_idx').on(table.userId),
+}));
 
 // Relations
 export const referralsRelations = relations(referrals, ({ one }) => ({

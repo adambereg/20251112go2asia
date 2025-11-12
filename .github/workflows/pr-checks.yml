@@ -30,6 +30,19 @@ jobs:
         run: npm install -g @stoplight/spectral-cli
       - name: Validate OpenAPI
         run: spectral lint docs/openapi/**/*.yaml
+      
+      - name: Check seed file encoding (UTF-8)
+        run: |
+          for file in services/*/seeds/*.sql; do
+            if [ -f "$file" ]; then
+              encoding=$(file -bi "$file" | grep -o "charset=[^;]*" | cut -d= -f2)
+              if [ "$encoding" != "utf-8" ] && [ "$encoding" != "us-ascii" ]; then
+                echo "ERROR: $file is not UTF-8 encoded (found: $encoding)"
+                exit 1
+              fi
+            fi
+          done
+          echo "✓ All seed files are UTF-8 encoded"
 
   generate-and-check:
     runs-on: ubuntu-latest

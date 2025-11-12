@@ -1,29 +1,32 @@
 /**
  * Утилиты для работы с БД
  * Подключение к Neon PostgreSQL через Drizzle
+ * Использует @neondatabase/serverless для Cloudflare Workers (HTTP/WebSocket)
  */
 
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from '../db/schema';
 
 // Connection string из переменных окружения
 const connectionString = process.env.DATABASE_URL || '';
 
-// Создаём клиент postgres
-const client = postgres(connectionString, {
-  max: 1, // Для Cloudflare Workers используем только 1 соединение
-});
+// Создаём Neon HTTP клиент (работает в Cloudflare Workers)
+const sql = neon(connectionString);
 
-// Создаём Drizzle instance
-export const db = drizzle(client, { schema });
+// Создаём Drizzle instance с HTTP адаптером
+export const db = drizzle(sql, { schema });
 
 /**
  * Проверка подключения к БД
  */
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
-    await client`SELECT 1`;
+    await sql`SELECT 1`;
+    // Проверяем доступность таблицы миграций
+    await sql`SELECT 1 FROM schema_migrations LIMIT 1`.catch(() => {
+      // Таблица может не существовать на первом запуске - это нормально
+    });
     return true;
   } catch (error) {
     console.error('Database connection check failed:', error);

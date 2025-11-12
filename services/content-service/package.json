@@ -9,15 +9,15 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "db:migrate:generate": "drizzle-kit generate",
-    "db:migrate:up": "drizzle-kit migrate",
-    "db:migrate:down": "drizzle-kit drop",
-    "db:migrate:status": "drizzle-kit check",
+    "db:migrate:up": "tsx scripts/migrate.ts",
+    "db:migrate:down": "tsx scripts/migrate-down.ts",
+    "db:migrate:status": "tsx scripts/migrate-status.ts",
     "db:seed": "tsx seeds/index.ts"
   },
   "dependencies": {
     "hono": "^3.12.0",
     "drizzle-orm": "^0.29.0",
-    "postgres": "^3.4.0",
+    "@neondatabase/serverless": "^0.9.0",
     "@go2asia/logger": "workspace:*"
   },
   "devDependencies": {

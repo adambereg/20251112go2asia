@@ -33,16 +33,20 @@ app.use('*', async (c, next) => {
   );
 });
 
-// CORS middleware
+// CORS middleware - разделение по окружениям
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://go2asia.space']
+  : process.env.NODE_ENV === 'staging'
+  ? ['https://staging.go2asia.space', 'https://*.netlify.app']
+  : ['http://localhost:3000', 'https://*.netlify.app'];
+
 app.use(
   '*',
   cors({
-    origin: [
-      'https://go2asia.space',
-      'https://*.netlify.app',
-      'http://localhost:3000',
-    ],
+    origin: allowedOrigins,
     credentials: true,
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'Idempotency-Key'],
   })
 );
 
@@ -93,10 +97,18 @@ app.route('/v1/api/content', contentRouter);
 
 // Root endpoint
 app.get('/', (c) => {
+  const gitSha = process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || 'unknown';
   return c.json({
     message: 'Go2Asia API Gateway',
     version: '0.1.0',
   });
+});
+
+// Добавляем X-Version заголовок во все ответы (после обработки запроса)
+app.use('*', async (c, next) => {
+  await next();
+  const gitSha = process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || 'unknown';
+  c.header('X-Version', gitSha.substring(0, 7)); // Короткий SHA
 });
 
 // Error handler
