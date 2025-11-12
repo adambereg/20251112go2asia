@@ -8,12 +8,29 @@ import { createErrorResponse } from './utils/errors';
 
 const app = new Hono();
 
-// Middleware для трассировки
+// Middleware для трассировки с логированием
 app.use('*', async (c, next) => {
   const requestId = c.req.header('X-Request-Id') || generateRequestId();
   c.set('requestId', requestId);
   c.header('X-Request-Id', requestId);
+  
+  const start = Date.now();
   await next();
+  const duration = Date.now() - start;
+  
+  // Логирование запроса
+  const { logRequest } = await import('@go2asia/logger');
+  logRequest(
+    requestId,
+    c.req.method,
+    c.req.path,
+    duration,
+    c.res.status,
+    {
+      userAgent: c.req.header('User-Agent'),
+      ip: c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For'),
+    }
+  );
 });
 
 // CORS middleware
@@ -83,17 +100,39 @@ app.get('/', (c) => {
 });
 
 // Error handler
-app.onError((err, c) => {
+app.onError(async (err, c) => {
   const requestId = c.get('requestId') || generateRequestId();
-  console.error('Error:', err);
+  const { logError } = await import('@go2asia/logger');
+  
+  logError(requestId, err, {
+    method: c.req.method,
+    path: c.req.path,
+  });
+  
+  // Определяем код ошибки на основе типа
+  let errorCode = 'INTERNAL_ERROR';
+  let statusCode = 500;
+  
+  if (err instanceof Error) {
+    if (err.message.includes('UNAUTHORIZED')) {
+      errorCode = 'UNAUTHORIZED';
+      statusCode = 401;
+    } else if (err.message.includes('FORBIDDEN')) {
+      errorCode = 'FORBIDDEN';
+      statusCode = 403;
+    } else if (err.message.includes('NOT_FOUND')) {
+      errorCode = 'NOT_FOUND';
+      statusCode = 404;
+    }
+  }
   
   return c.json(
     createErrorResponse(
-      'INTERNAL_ERROR',
-      'An internal error occurred',
+      errorCode,
+      err instanceof Error ? err.message : 'An internal error occurred',
       requestId
     ),
-    500
+    statusCode
   );
 });
 

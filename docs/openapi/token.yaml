@@ -63,7 +63,10 @@ paths:
             type: integer
             default: 0
             minimum: 0
-          description: Смещение (используется если cursor не указан)
+          description: |
+            Смещение для offset-based пагинации (fallback, deprecated).
+            Используется только если cursor не указан. Рекомендуется использовать cursor-based пагинацию.
+          deprecated: true
       responses:
         '200':
           description: История транзакций

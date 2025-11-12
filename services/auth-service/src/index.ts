@@ -1,14 +1,33 @@
 import { Hono } from 'hono';
-import { generateRequestId } from '@go2asia/logger';
+import { generateRequestId, logRequest, logError } from '@go2asia/logger';
 
 const app = new Hono();
 
-// Middleware для трассировки
+// Middleware для трассировки с логированием
 app.use('*', async (c, next) => {
   const requestId = c.req.header('X-Request-Id') || generateRequestId();
   c.set('requestId', requestId);
   c.header('X-Request-Id', requestId);
-  await next();
+  
+  const start = Date.now();
+  try {
+    await next();
+  } catch (error) {
+    logError(requestId, error as Error, {
+      method: c.req.method,
+      path: c.req.path,
+    });
+    throw error;
+  } finally {
+    const duration = Date.now() - start;
+    logRequest(
+      requestId,
+      c.req.method,
+      c.req.path,
+      duration,
+      c.res.status
+    );
+  }
 });
 
 // Health check
@@ -21,7 +40,9 @@ app.get('/health', (c) => {
 });
 
 // Ready check
-app.get('/ready', (c) => {
+app.get('/ready', async (c) => {
+  // Auth Service может не иметь БД (использует Clerk)
+  // Проверяем только базовую готовность
   return c.json({ status: 'ready' });
 });
 

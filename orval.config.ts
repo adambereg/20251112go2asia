@@ -25,6 +25,18 @@ export default defineConfig({
               }, {} as Record<string, unknown>);
             return JSON.stringify(sortedParams);
           },
+          // Дефолтные опции для React Query
+          options: {
+            retry: (failureCount, error: any) => {
+              // Retry только для GET запросов и только для сетевых ошибок
+              if (error?.error?.code === 'TIMEOUT' || error?.error?.code === 'HTTP_ERROR') {
+                return failureCount < 2; // Максимум 2 попытки
+              }
+              return false; // Не retry для других ошибок
+            },
+            staleTime: 5 * 60 * 1000, // 5 минут для GET запросов
+            gcTime: 10 * 60 * 1000, // 10 минут (было cacheTime)
+          },
         },
       },
     },
