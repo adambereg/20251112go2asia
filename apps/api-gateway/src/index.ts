@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { logger as honoLogger } from 'hono/logger';
 import { generateRequestId } from '@go2asia/logger';
 import { rateLimit } from './middleware/rateLimit';
-import { cacheMiddleware } from './middleware/cache';
+import { cacheConfigs } from './middleware/cache';
 import { createErrorResponse } from './utils/errors';
 
 const app = new Hono();
@@ -83,13 +83,18 @@ app.use('*', async (c, next) => {
   await next();
 });
 
-// Cache middleware для публичных GET
-app.use('/v1/api/content/*', cacheMiddleware(true));
+// Cache middleware для публичных GET с разными TTL
+// События - часто меняются (2 мин TTL)
+app.use('/v1/api/content/events*', cacheConfigs.dynamic);
+// Статьи - редко меняются (10 мин TTL)
+app.use('/v1/api/content/articles*', cacheConfigs.stable);
+// Остальной контент - средняя частота (5 мин TTL)
+app.use('/v1/api/content/*', cacheConfigs.moderate);
 
 // Cache middleware для приватных endpoints (no-store)
-app.use('/v1/api/token/*', cacheMiddleware(false));
-app.use('/v1/api/referral/*', cacheMiddleware(false));
-app.use('/v1/api/auth/*', cacheMiddleware(false));
+app.use('/v1/api/token/*', cacheConfigs.private);
+app.use('/v1/api/referral/*', cacheConfigs.private);
+app.use('/v1/api/auth/*', cacheConfigs.private);
 
 // API routes
 import { contentRouter } from './routes/content';

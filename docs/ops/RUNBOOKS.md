@@ -1,255 +1,390 @@
-# Runbooks для типичных инцидентов
+# Runbooks — Руководства по инцидентам
 
-**Версия:** 1.0  
-**Дата:** 2025-11-09
+**Дата:** 2025-11-12  
+**Статус:** Актуально для Фазы 0
 
 ---
 
-## P0: Критические инциденты (немедленное реагирование)
+## Обзор
 
-### Runbook: Ошибки 5xx в Content Service
+Данный документ содержит пошаговые инструкции по диагностике и решению типичных инцидентов в экосистеме Go2Asia.
 
-**Симптомы:**
-- Error rate > 1% в течение 5 минут
-- Availability < 99%
-- Логи показывают 500 ошибки
+---
 
-**Шаги:**
+## Runbook: Ошибки 5xx в Content Service
 
-1. **Проверить логи Cloudflare Workers**
+### Симптомы
+
+- **Алерт:** Error rate > 1% в течение 5 минут
+- **Симптомы пользователей:** Не могут загрузить контент (страны, города, места)
+- **Метрики:** Высокий процент 500/502/503 ошибок
+
+### Диагностика
+
+1. **Проверить статус сервиса:**
    ```bash
-   cd services/content-service
-   wrangler tail --env production
+   curl https://content.go2asia.space/health
+   curl https://content.go2asia.space/ready
    ```
 
-2. **Проверить подключение к Neon DB**
+2. **Проверить логи Cloudflare Workers:**
+   - Cloudflare Dashboard → Workers → `go2asia-content-service` → Logs
+   - Искать ошибки с кодом 500/502/503
+   - Проверить `X-Request-Id` для трассировки
+
+3. **Проверить статус Neon БД:**
+   - Neon Dashboard → Project → Status
+   - Проверить метрики подключений
+   - Проверить наличие активных запросов
+
+4. **Проверить `/ready` endpoint:**
    ```bash
-   curl https://api.go2asia.space/v1/api/content/ready
+   curl https://content.go2asia.space/ready
+   # Должен вернуть: {"status":"ready"}
+   # Если {"status":"not ready"} → проблема с БД или внешними зависимостями
    ```
 
-3. **Проверить метрики БД в Neon Dashboard**
-   - Neon Dashboard → Project → Monitoring
-   - Проверить connection pool, таймауты, slow queries
+### Решение
 
-4. **Если проблема с БД:**
-   - Проверить connection pool (максимум соединений)
-   - Проверить таймауты
-   - Проверить slow queries
-   - При необходимости — увеличить connection pool
+**Если БД недоступна:**
+1. Проверить Neon Dashboard на наличие инцидентов
+2. Проверить connection string в переменных окружения
+3. Проверить лимиты подключений (Neon free tier имеет ограничения)
+4. Если проблема в Neon → связаться с поддержкой Neon или переключиться на backup БД
 
-5. **Если проблема с кодом:**
-   - Проверить последний деплой
-   - Проверить изменения в коде
-   - Откатить при необходимости:
-     ```bash
-     wrangler rollback --env production
-     ```
+**Если код ошибки:**
+1. Найти ошибку в логах по `X-Request-Id`
+2. Проверить стектрейс
+3. Исправить код и задеплоить hotfix
 
-6. **Проверить восстановление**
+**Если временный сбой:**
+1. Подождать 5 минут (может быть временная проблема Cloudflare или Neon)
+2. Проверить статус снова
+3. Если не решено → перейти к эскалации
+
+### Эскалация
+
+- **Если не решено за 15 минут** → связаться с DevOps командой
+- **Если БД полностью недоступна** → использовать backup БД или восстановить из snapshot
+
+---
+
+## Runbook: Всплеск латентности
+
+### Симптомы
+
+- **Алерт:** Latency p95 > 1000ms в течение 5 минут
+- **Симптомы пользователей:** Медленная загрузка страниц
+- **Метрики:** Высокий p95/p99 latency
+
+### Диагностика
+
+1. **Проверить метрики Cloudflare:**
+   - Cloudflare Dashboard → Analytics → Performance
+   - Проверить latency по регионам
+   - Проверить latency по endpoint'ам
+
+2. **Проверить метрики Neon БД:**
+   - Neon Dashboard → Metrics
+   - Проверить query time
+   - Проверить количество активных подключений
+
+3. **Проверить медленные запросы:**
    ```bash
-   curl https://api.go2asia.space/v1/api/content/health
-   curl https://api.go2asia.space/v1/api/content/ready
+   # В логах Cloudflare Workers искать запросы с большой duration
+   # Проверить X-Request-Id для трассировки
    ```
 
-**Время восстановления:** <15 минут
+4. **Проверить rate limiting:**
+   - Проверить не превышен ли rate limit
+   - Проверить заголовки `X-RateLimit-Remaining`
+
+### Решение
+
+**Если проблема в БД:**
+1. Проверить медленные запросы в Neon Dashboard
+2. Оптимизировать запросы (добавить индексы)
+3. Проверить connection pooling
+
+**Если проблема в коде:**
+1. Найти медленные операции в логах
+2. Оптимизировать алгоритмы
+3. Добавить кэширование для часто запрашиваемых данных
+
+**Если проблема в Cloudflare:**
+1. Проверить статус Cloudflare (status.cloudflare.com)
+2. Проверить региональные проблемы
+3. Если глобальная проблема → ждать восстановления
+
+**Если проблема в rate limiting:**
+1. Увеличить лимиты для критичных endpoints
+2. Оптимизировать использование API
+3. Добавить retry с exponential backoff
+
+### Эскалация
+
+- **Если не решено за 30 минут** → связаться с DevOps командой
+- **Если проблема критична** → рассмотреть временное увеличение ресурсов
 
 ---
 
-### Runbook: Всплеск латентности
+## Runbook: Ошибки Clerk Webhook
 
-**Симптомы:**
-- Latency p95 > 1000ms в течение 5 минут
-- Пользователи жалуются на медленную работу
+### Симптомы
 
-**Шаги:**
+- **Алерт:** Ошибки в Auth Service при обработке webhook'ов
+- **Симптомы пользователей:** Проблемы с регистрацией/авторизацией
+- **Метрики:** Высокий процент ошибок 400/401/403
 
-1. **Проверить дашборд latency по маршрутам**
-   - Cloudflare Dashboard → Analytics → Workers
-   - Определить проблемный маршрут
+### Диагностика
 
-2. **Проверить логи для проблемного маршрута**
+1. **Проверить статус Auth Service:**
    ```bash
-   wrangler tail --env production | grep "GET /v1/api/content/countries"
+   curl https://auth.go2asia.space/health
+   curl https://auth.go2asia.space/ready
    ```
 
-3. **Проверить метрики БД**
-   - Neon Dashboard → Monitoring
-   - Проверить slow queries
-   - Проверить connection pool usage
-
-4. **Проверить Cloudflare Cache hit ratio**
-   - Cloudflare Dashboard → Analytics → Cache
-   - Если hit ratio низкий — проверить заголовки Cache-Control
-
-5. **Принять меры:**
-   - Если проблема с БД — оптимизировать запрос или добавить индекс
-   - Если проблема с кешем — увеличить TTL или проверить заголовки
-   - Если проблема с кодом — оптимизировать или откатить
-
-**Время восстановления:** <30 минут
-
----
-
-### Runbook: Ошибки Clerk Webhook
-
-**Симптомы:**
-- Error rate webhook > 5% в Clerk Dashboard
-- Пользователи не синхронизируются с БД
-
-**Шаги:**
-
-1. **Проверить логи Auth Service**
+2. **Проверить доступность Clerk JWKS:**
    ```bash
-   cd services/auth-service
-   wrangler tail --env production | grep webhook
+   curl https://auth.go2asia.space/ready
+   # Если {"status":"not ready", "error":"Clerk JWKS endpoint unavailable"}
+   # → проблема с Clerk
    ```
 
-2. **Проверить CLERK_WEBHOOK_SECRET**
-   - Cloudflare Dashboard → auth-service-production → Variables
-   - Сравнить с Clerk Dashboard → Webhooks → Signing Secret
+3. **Проверить логи Auth Service:**
+   - Cloudflare Dashboard → Workers → `go2asia-auth-service` → Logs
+   - Искать ошибки при обработке webhook'ов
+   - Проверить `X-Request-Id` для трассировки
 
-3. **Проверить Clerk Dashboard**
-   - Clerk Dashboard → Webhooks → Endpoints
-   - Проверить Error Rate
-   - Проверить последние события
+4. **Проверить статус Clerk:**
+   - Clerk Dashboard → Webhooks → Logs
+   - Проверить статус доставки webhook'ов
 
-4. **Проверить передачу заголовков через API Gateway**
+### Решение
+
+**Если Clerk недоступен:**
+1. Проверить статус Clerk (status.clerk.com)
+2. Если проблема в Clerk → ждать восстановления
+3. Временно отключить проверку JWKS в `/ready` (только для диагностики)
+
+**Если проблема с валидацией webhook:**
+1. Проверить секрет webhook в переменных окружения
+2. Проверить подпись webhook'а
+3. Проверить формат данных webhook'а
+
+**Если проблема с обработкой webhook:**
+1. Проверить логи обработки
+2. Исправить код обработки
+3. Задеплоить исправление
+
+### Эскалация
+
+- **Если Clerk недоступен > 30 минут** → связаться с поддержкой Clerk
+- **Если критичная проблема** → рассмотреть временное отключение webhook'ов
+
+---
+
+## Runbook: Проблемы с БД
+
+### Симптомы
+
+- **Алерт:** Database connection failed
+- **Симптомы пользователей:** Ошибки при загрузке данных
+- **Метрики:** Высокий процент ошибок 503
+
+### Диагностика
+
+1. **Проверить `/ready` endpoint:**
    ```bash
-   # Проверить логи Gateway
-   wrangler tail --env production | grep "svix-"
+   curl https://content.go2asia.space/ready
+   # Если {"status":"not ready", "error":"Database connection failed"}
+   # → проблема с БД
    ```
 
-5. **Протестировать webhook вручную**
-   - Clerk Dashboard → Webhooks → Test endpoint
-   - Проверить ответ
+2. **Проверить статус Neon:**
+   - Neon Dashboard → Project → Status
+   - Проверить метрики подключений
+   - Проверить наличие активных запросов
 
-6. **Если проблема с секретом:**
-   - Обновить CLERK_WEBHOOK_SECRET в Cloudflare
-   - Обновить в Clerk Dashboard
+3. **Проверить connection string:**
+   - Проверить переменные окружения в Cloudflare Workers
+   - Проверить формат connection string
+   - Проверить права доступа
 
-**Время восстановления:** <20 минут
+4. **Проверить лимиты:**
+   - Neon Dashboard → Usage
+   - Проверить не превышены ли лимиты (подключения, запросы)
 
----
+### Решение
 
-## P1: Предупреждающие инциденты (реагирование в течение часа)
+**Если БД недоступна:**
+1. Проверить статус Neon (status.neon.tech)
+2. Если проблема в Neon → ждать восстановления или использовать backup
 
-### Runbook: Error budget исчерпан на 50%
+**Если проблема с подключением:**
+1. Проверить connection string
+2. Проверить сетевую доступность
+3. Проверить firewall правила
 
-**Симптомы:**
-- Error budget использован на 50%
-- Метрики показывают рост ошибок
+**Если превышены лимиты:**
+1. Оптимизировать запросы
+2. Уменьшить количество подключений
+3. Рассмотреть upgrade плана Neon
 
-**Шаги:**
+**Если проблема с миграциями:**
+1. Проверить статус миграций: `pnpm db:migrate:status`
+2. Откатить проблемную миграцию: `pnpm db:migrate:down`
+3. Исправить миграцию и применить заново
 
-1. **Проверить дашборд SLO**
-   - Определить, какой сервис исчерпывает budget
-   - Проверить тренд ошибок
+### Эскалация
 
-2. **Проанализировать ошибки**
-   - Топ ошибок по типу
-   - Топ ошибок по endpoint
-   - Топ ошибок по времени
-
-3. **Принять меры:**
-   - Исправить частые ошибки
-   - Оптимизировать проблемные endpoints
-   - Увеличить мониторинг
-
-4. **Уведомить команду**
-   - Создать issue в GitHub
-   - Обсудить на standup
-
----
-
-### Runbook: Необычный всплеск трафика
-
-**Симптомы:**
-- Трафик >200% от среднего
-- Возможна DDoS атака
-
-**Шаги:**
-
-1. **Проверить источник трафика**
-   - Cloudflare Dashboard → Analytics → Traffic
-   - Проверить топ IP адресов
-
-2. **Проверить паттерны запросов**
-   - Одинаковые endpoints
-   - Одинаковые IP адреса
-   - Подозрительные User-Agent
-
-3. **Принять меры:**
-   - Если DDoS — включить Cloudflare DDoS Protection
-   - Если легитимный трафик — масштабировать ресурсы
-   - Если подозрительный — заблокировать IP
+- **Если БД полностью недоступна** → использовать backup БД или восстановить из snapshot
+- **Если критичная проблема** → связаться с поддержкой Neon
 
 ---
 
-## SLO Dashboard
+## Runbook: Превышение rate limit
 
-### Cloudflare Analytics
+### Симптомы
 
-**Доступ:**
-- Cloudflare Dashboard → Analytics → Workers
-- Метрики: Requests, Errors, Latency (p50/p95/p99)
+- **Алерт:** Высокий процент 429 ошибок
+- **Симптомы пользователей:** Запросы блокируются
+- **Метрики:** Много запросов с кодом 429
 
-**Настройка алертов:**
-- Cloudflare Dashboard → Notifications → Add
-- Условия:
-  - Error rate > 1%
-  - Latency p95 > 1000ms
-  - Availability < 99%
+### Диагностика
 
-### Grafana Dashboard (опционально)
+1. **Проверить заголовки rate limit:**
+   ```bash
+   curl -I https://api.go2asia.space/v1/api/content/countries
+   # Проверить X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+   ```
 
-Если нужен более детальный дашборд:
+2. **Проверить логи Gateway:**
+   - Cloudflare Dashboard → Workers → `go2asia-api-gateway` → Logs
+   - Искать запросы с кодом 429
+   - Проверить IP адреса запросов
 
-```yaml
-# grafana-dashboard.yaml
-dashboard:
-  title: "Go2Asia API SLO Dashboard"
-  panels:
-    - title: "Availability"
-      targets:
-        - expr: 'sum(rate(http_requests_total{status=~"2.."}[5m])) / sum(rate(http_requests_total[5m]))'
-    
-    - title: "Latency p95"
-      targets:
-        - expr: 'histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))'
-    
-    - title: "Error Rate"
-      targets:
-        - expr: 'sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))'
-```
+3. **Проверить метрики rate limiting:**
+   - Cloudflare Dashboard → Analytics → Security
+   - Проверить количество заблокированных запросов
+
+### Решение
+
+**Если легитимные пользователи блокируются:**
+1. Увеличить rate limit для публичных endpoints
+2. Добавить whitelist для известных IP адресов
+3. Оптимизировать использование API на фронтенде
+
+**Если DDoS атака:**
+1. Включить Cloudflare DDoS Protection
+2. Блокировать подозрительные IP адреса
+3. Использовать Cloudflare Rate Limiting Rules
+
+**Если проблема в коде:**
+1. Проверить логику rate limiting в Gateway
+2. Исправить баги в подсчёте лимитов
+3. Задеплоить исправление
+
+### Эскалация
+
+- **Если DDoS атака** → включить Cloudflare DDoS Protection
+- **Если критичная проблема** → временно увеличить лимиты
 
 ---
 
-## Правило: "No Dashboards — No Prod"
+## Runbook: Проблемы с кэшем
 
-**Проверка перед деплоем:**
+### Симптомы
+
+- **Симптомы пользователей:** Видят устаревшие данные
+- **Метрики:** Низкий Cache Hit Ratio
+
+### Диагностика
+
+1. **Проверить заголовки кэша:**
+   ```bash
+   curl -I https://api.go2asia.space/v1/api/content/countries
+   # Проверить Cache-Control заголовки
+   ```
+
+2. **Проверить Cloudflare Cache Rules:**
+   - Cloudflare Dashboard → Rules → Cache Rules
+   - Проверить правила кэширования
+
+3. **Проверить метрики кэша:**
+   - Cloudflare Dashboard → Analytics → Caching
+   - Проверить Cache Hit Ratio
+
+### Решение
+
+**Если кэш не работает:**
+1. Проверить Cache-Control заголовки в ответах
+2. Проверить Cloudflare Cache Rules (не должно быть правил, отключающих кэш)
+3. Проверить что запросы идут через Cloudflare
+
+**Если устаревшие данные:**
+1. Выполнить инвалидацию кэша через Cloudflare API
+2. Уменьшить TTL для часто меняющихся данных
+3. Использовать Cache Tags для точной инвалидации
+
+**Если низкий Cache Hit Ratio:**
+1. Проверить TTL (может быть слишком маленьким)
+2. Оптимизировать запросы для лучшего кэширования
+3. Добавить кэширование для большего количества endpoints
+
+### Эскалация
+
+- **Если критичная проблема** → выполнить полную инвалидацию кэша
+
+---
+
+## Общие процедуры
+
+### Проверка статуса всех сервисов
 
 ```bash
-# Скрипт проверки
-#!/bin/bash
+# API Gateway
+curl https://api.go2asia.space/health
+curl https://api.go2asia.space/ready
 
-# Проверить наличие алертов
-if ! curl -s "https://api.cloudflare.com/client/v4/accounts/{account_id}/notifications" \
-  -H "Authorization: Bearer {api_token}" | grep -q "error_rate"; then
-  echo "❌ Alerts not configured!"
-  exit 1
-fi
+# Content Service
+curl https://content.go2asia.space/health
+curl https://content.go2asia.space/ready
 
-# Проверить доступность дашборда
-if ! curl -s "https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics/workers" \
-  -H "Authorization: Bearer {api_token}" | grep -q "requests"; then
-  echo "❌ Dashboard not accessible!"
-  exit 1
-fi
+# Auth Service
+curl https://auth.go2asia.space/health
+curl https://auth.go2asia.space/ready
 
-echo "✅ Dashboards and alerts configured"
+# Token Service
+curl https://token.go2asia.space/health
+curl https://token.go2asia.space/ready
+
+# Referral Service
+curl https://referral.go2asia.space/health
+curl https://referral.go2asia.space/ready
 ```
+
+### Трассировка запроса
+
+1. Получить `X-Request-Id` из ответа или логов
+2. Найти запрос в логах Cloudflare Workers по `X-Request-Id`
+3. Проследить весь путь запроса через Gateway → Service → БД
+
+### Rollback деплоя
+
+1. Откатить миграции БД: `pnpm db:migrate:down`
+2. Откатить код через Cloudflare Dashboard → Workers → Versions
+3. Проверить работоспособность после rollback
 
 ---
 
-**Последнее обновление:** 2025-11-09
+## Контакты для эскалации
 
+- **DevOps команда:** _заполнить_
+- **Поддержка Cloudflare:** support.cloudflare.com
+- **Поддержка Neon:** support.neon.tech
+- **Поддержка Clerk:** support.clerk.com
+
+---
+
+**Последнее обновление:** 2025-11-12

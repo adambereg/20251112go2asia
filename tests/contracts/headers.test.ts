@@ -51,7 +51,7 @@ describe('Headers Contract Tests', () => {
   });
 
   describe('Cache Control Headers', () => {
-    test('Public GET endpoints have cache headers', async ({ request }) => {
+    test('Public GET endpoints have cache headers (moderate TTL)', async ({ request }) => {
       const response = await request.get(`${API_URL}/v1/api/content/countries`);
       
       expect(response.status()).toBe(200);
@@ -63,6 +63,28 @@ describe('Headers Contract Tests', () => {
       
       const vary = response.headers()['vary'];
       expect(vary).toContain('Accept');
+    });
+
+    test('Events endpoints have dynamic cache headers (short TTL)', async ({ request }) => {
+      const response = await request.get(`${API_URL}/v1/api/content/events`);
+      
+      if (response.status() === 200) {
+        const cacheControl = response.headers()['cache-control'];
+        expect(cacheControl).toContain('public');
+        expect(cacheControl).toContain('s-maxage=120');
+        expect(cacheControl).toContain('stale-while-revalidate=30');
+      }
+    });
+
+    test('Articles endpoints have stable cache headers (long TTL)', async ({ request }) => {
+      const response = await request.get(`${API_URL}/v1/api/content/articles`);
+      
+      if (response.status() === 200) {
+        const cacheControl = response.headers()['cache-control'];
+        expect(cacheControl).toContain('public');
+        expect(cacheControl).toContain('s-maxage=600');
+        expect(cacheControl).toContain('stale-while-revalidate=120');
+      }
     });
 
     test('Private endpoints have no-store', async ({ request }) => {
