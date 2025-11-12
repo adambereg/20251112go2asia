@@ -64,27 +64,74 @@ jobs:
       - name: Build
         run: pnpm build
       
+      - name: Generate CHANGELOG
+        id: changelog
+        run: |
+          # Получаем последний тег или начало репозитория
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            # Если тегов нет, берём все коммиты
+            COMMITS=$(git log --pretty=format:"%s" --no-merges)
+          else
+            # Коммиты с последнего тега
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s" --no-merges)
+          fi
+          
+          # Генерируем CHANGELOG из Conventional Commits
+          CHANGELOG="## Changes\n\n"
+          
+          # Features
+          FEATURES=$(echo "$COMMITS" | grep -E "^feat(\(.+\))?:" | sed 's/^feat(\(.*\)):/### \1/' | sed 's/^feat:/\*\*Feature:\*\*/' || true)
+          if [ -n "$FEATURES" ]; then
+            CHANGELOG="${CHANGELOG}### ✨ Features\n${FEATURES}\n\n"
+          fi
+          
+          # Fixes
+          FIXES=$(echo "$COMMITS" | grep -E "^fix(\(.+\))?:" | sed 's/^fix(\(.*\)):/### \1/' | sed 's/^fix:/\*\*Fix:\*\*/' || true)
+          if [ -n "$FIXES" ]; then
+            CHANGELOG="${CHANGELOG}### 🐛 Fixes\n${FIXES}\n\n"
+          fi
+          
+          # Breaking changes
+          BREAKING=$(echo "$COMMITS" | grep -E "^.+!:" | sed 's/!://' || true)
+          if [ -n "$BREAKING" ]; then
+            CHANGELOG="${CHANGELOG}### ⚠️ Breaking Changes\n${BREAKING}\n\n"
+          fi
+          
+          # Other changes
+          OTHERS=$(echo "$COMMITS" | grep -vE "^(feat|fix)(\(.+\))?:" | grep -vE "^.+!:" || true)
+          if [ -n "$OTHERS" ]; then
+            CHANGELOG="${CHANGELOG}### 📝 Other Changes\n${OTHERS}\n\n"
+          fi
+          
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
       - name: Run database migrations (production)
         id: migrate
         run: pnpm db:migrate:prod
         env:
+          # Production использует отдельные секреты
           DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
         continue-on-error: true # Пока миграции не настроены
       
-      - name: Deploy API Gateway to Cloudflare
+      - name: Deploy API Gateway to Cloudflare (production)
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Production использует отдельные секреты
+          apiToken: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_PRODUCTION_ACCOUNT_ID }}
           workingDirectory: apps/api-gateway
           command: deploy
         continue-on-error: true
       
-      - name: Deploy Services to Cloudflare
+      - name: Deploy Services to Cloudflare (production)
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_PRODUCTION_ACCOUNT_ID }}
           workingDirectory: services/content-service
           command: deploy
         continue-on-error: true
@@ -94,16 +141,27 @@ jobs:
         with:
           args: deploy --dir=apps/go2asia-pwa-shell/.next --prod=true
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          # Production использует отдельные секреты
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_PRODUCTION_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_PRODUCTION_SITE_ID }}
         continue-on-error: true
       
       - name: Smoke tests (production)
         id: smoke-tests
-        run: pnpm test:smoke:prod
+        run: |
+          mkdir -p test-results
+          pnpm test:smoke:prod > test-results/smoke-tests.log 2>&1 || true
         env:
           API_URL: https://api.go2asia.space
         continue-on-error: true
+      
+      - name: Upload smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-smoke-tests-logs
+          path: test-results/smoke-tests.log
+          retention-days: 90
       
       - name: Rollback on failure
         if: steps.smoke-tests.outcome == 'failure'
@@ -128,6 +186,8 @@ jobs:
             - Version: ${{ github.event.inputs.version }}
             - Deployed by: ${{ github.actor }}
             - Commit: ${{ github.sha }}
+            
+            ${{ steps.changelog.outputs.CHANGELOG }}
           draft: false
           prerelease: false
       

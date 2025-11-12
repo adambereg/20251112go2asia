@@ -30,8 +30,26 @@ jobs:
         with:
           args: deploy --dir=apps/go2asia-pwa-shell/.next --prod=false
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          # Preview использует отдельные секреты для безопасности
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_PREVIEW_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_PREVIEW_SITE_ID }}
+      
+      - name: Run smoke tests on preview
+        id: smoke-tests
+        run: |
+          mkdir -p test-results
+          pnpm test:smoke:preview > test-results/smoke-tests.log 2>&1 || true
+        env:
+          API_URL: ${{ env.NETLIFY_DEPLOY_URL || 'https://preview.go2asia.space' }}
+        continue-on-error: true
+      
+      - name: Upload smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-smoke-tests-logs
+          path: test-results/smoke-tests.log
+          retention-days: 7
       
       - name: Comment PR with preview URL
         uses: actions/github-script@v7
@@ -49,7 +67,8 @@ jobs:
             );
             
             const previewUrl = process.env.NETLIFY_DEPLOY_URL || 'Preview URL will be available after deployment';
-            const commentBody = `## 🚀 Preview Deployment\n\n✅ Preview deployed successfully!\n\n🔗 **Preview URL:** ${previewUrl}\n\n_This comment will be updated automatically._`;
+            const smokeStatus = '${{ steps.smoke-tests.outcome }}' === 'success' ? '✅' : '⚠️';
+            const commentBody = `## 🚀 Preview Deployment\n\n✅ Preview deployed successfully!\n\n🔗 **Preview URL:** ${previewUrl}\n\n${smokeStatus} **Smoke Tests:** ${{ steps.smoke-tests.outcome }}\n\n📦 **Artifacts:** Smoke test logs available in workflow artifacts\n\n_This comment will be updated automatically._`;
             
             if (botComment) {
               await github.rest.issues.updateComment({

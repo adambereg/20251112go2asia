@@ -27,8 +27,9 @@
     "db:migrate:staging": "echo 'Database migrations for staging (TODO)'",
     "db:migrate:prod": "echo 'Database migrations for production (TODO)'",
     "db:rollback:prod": "echo 'Database rollback for production (TODO)'",
-    "test:smoke:staging": "echo 'Smoke tests for staging (TODO)'",
-    "test:smoke:prod": "echo 'Smoke tests for production (TODO)'",
+    "test:smoke:preview": "cd apps/go2asia-pwa-shell && playwright test tests/smoke.spec.ts",
+    "test:smoke:staging": "cd apps/go2asia-pwa-shell && API_URL=https://api-staging.go2asia.space playwright test tests/smoke.spec.ts",
+    "test:smoke:prod": "cd apps/go2asia-pwa-shell && API_URL=https://api.go2asia.space playwright test tests/smoke.spec.ts",
     "test:e2e": "cd apps/go2asia-pwa-shell && playwright test"
   },
   "devDependencies": {

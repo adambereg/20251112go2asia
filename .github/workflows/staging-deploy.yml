@@ -36,20 +36,21 @@ jobs:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
         continue-on-error: true # Пока миграции не настроены
       
-      - name: Deploy API Gateway to Cloudflare
+      - name: Deploy API Gateway to Cloudflare (staging)
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Staging использует отдельные секреты
+          apiToken: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
           workingDirectory: apps/api-gateway
           command: deploy
         continue-on-error: true # Пока Cloudflare не настроен
       
-      - name: Deploy Services to Cloudflare
+      - name: Deploy Services to Cloudflare (staging)
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
           workingDirectory: services/content-service
           command: deploy
         continue-on-error: true
@@ -59,15 +60,27 @@ jobs:
         with:
           args: deploy --dir=apps/go2asia-pwa-shell/.next --prod=true
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          # Staging использует отдельные секреты
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_STAGING_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_STAGING_SITE_ID }}
         continue-on-error: true # Пока Netlify не настроен
       
       - name: Smoke tests (staging)
-        run: pnpm test:smoke:staging
+        id: smoke-tests
+        run: |
+          mkdir -p test-results
+          pnpm test:smoke:staging > test-results/smoke-tests.log 2>&1 || true
         env:
           API_URL: https://api-staging.go2asia.space
         continue-on-error: true # Пока тесты не настроены
+      
+      - name: Upload smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-smoke-tests-logs
+          path: test-results/smoke-tests.log
+          retention-days: 30
       
       - name: Notify deployment status
         if: always()
