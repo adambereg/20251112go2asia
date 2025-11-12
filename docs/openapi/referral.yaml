@@ -11,6 +11,26 @@ servers:
     description: Staging
 
 paths:
+  /stats:
+    get:
+      summary: Получить статистику рефералов
+      operationId: getReferralStats
+      tags:
+        - Referral
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Статистика рефералов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /tree:
     get:
       summary: Получить дерево рефералов
@@ -31,23 +51,127 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /register:
+    post:
+      summary: Зарегистрировать реферальную связь (internal)
+      operationId: registerReferral
+      tags:
+        - Internal
+      description: |
+        Внутренний endpoint для регистрации реферальной связи.
+        Вызывается Auth Service при регистрации нового пользователя.
+      security:
+        - serviceAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterReferralRequest'
+      responses:
+        '200':
+          description: Реферальная связь зарегистрирована
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  referralId:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   schemas:
-    ReferralTree:
+    ReferralStats:
       type: object
+      required:
+        - userId
+        - totalReferrals
+        - level1Referrals
+        - level2Referrals
       properties:
         userId:
           type: string
+          description: ID пользователя
+        totalReferrals:
+          type: integer
+          description: Общее количество рефералов
+        level1Referrals:
+          type: integer
+          description: Количество рефералов 1-го уровня
+        level2Referrals:
+          type: integer
+          description: Количество рефералов 2-го уровня
+        totalEarned:
+          type: number
+          description: Всего заработано Points от рефералов
+        referralCode:
+          type: string
+          description: Реферальный код пользователя
+
+    ReferralTree:
+      type: object
+      required:
+        - userId
+        - referrals
+      properties:
+        userId:
+          type: string
+          description: ID пользователя
+        referralCode:
+          type: string
+          description: Реферальный код пользователя
         referrals:
           type: array
           items:
-            type: object
-            properties:
-              userId:
-                type: string
-              level:
-                type: number
-                enum: [1, 2]
+            $ref: '#/components/schemas/ReferralNode'
+          description: Список рефералов
+
+    ReferralNode:
+      type: object
+      required:
+        - userId
+        - level
+        - registeredAt
+      properties:
+        userId:
+          type: string
+          description: ID реферала
+        level:
+          type: integer
+          enum: [1, 2]
+          description: Уровень реферала (1 или 2)
+        registeredAt:
+          type: string
+          format: date-time
+          description: Дата регистрации реферала
+        totalEarned:
+          type: number
+          description: Заработано Points от этого реферала
+
+    RegisterReferralRequest:
+      type: object
+      required:
+        - userId
+        - referralCode
+      properties:
+        userId:
+          type: string
+          description: ID нового пользователя
+        referralCode:
+          type: string
+          description: Реферальный код пригласившего пользователя
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Дополнительные данные
 
     ErrorResponse:
       type: object
@@ -63,17 +187,35 @@ components:
           properties:
             code:
               type: string
+              enum:
+                - VALIDATION_ERROR
+                - BAD_REQUEST
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - CONFLICT
+                - RATE_LIMIT_EXCEEDED
+                - INTERNAL_ERROR
+                - SERVICE_UNAVAILABLE
             message:
               type: string
             traceId:
               type: string
               format: uuid
+            key:
+              type: string
+              description: Ключ поля с ошибкой (для валидации)
 
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    serviceAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Service-to-service authentication
 
   responses:
     Unauthorized:
@@ -82,6 +224,23 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    BadRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: BAD_REQUEST
+              message: Invalid request parameters
+              traceId: 123e4567-e89b-12d3-a456-426614174000
 
     InternalError:
       description: Внутренняя ошибка сервера
@@ -89,3 +248,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: An internal error occurred
+              traceId: 123e4567-e89b-12d3-a456-426614174000

@@ -17,6 +17,20 @@ paths:
       operationId: getCountries
       tags:
         - Countries
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
       responses:
         '200':
           description: Список стран
@@ -29,6 +43,8 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Country'
+                  total:
+                    type: integer
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -51,6 +67,288 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Country'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /cities:
+    get:
+      summary: Получить список городов
+      operationId: getCities
+      tags:
+        - Cities
+      parameters:
+        - name: countryId
+          in: query
+          schema:
+            type: string
+          description: Фильтр по стране
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Список городов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/City'
+                  total:
+                    type: integer
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /cities/{id}:
+    get:
+      summary: Получить детали города
+      operationId: getCityById
+      tags:
+        - Cities
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали города
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/City'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /places:
+    get:
+      summary: Получить список мест
+      operationId: getPlaces
+      tags:
+        - Places
+      parameters:
+        - name: cityId
+          in: query
+          schema:
+            type: string
+          description: Фильтр по городу
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [attraction, restaurant, hotel, shop, other]
+          description: Категория места
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Список мест
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Place'
+                  total:
+                    type: integer
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /places/{id}:
+    get:
+      summary: Получить детали места
+      operationId: getPlaceById
+      tags:
+        - Places
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали места
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /events:
+    get:
+      summary: Получить список событий
+      operationId: getEvents
+      tags:
+        - Events
+      parameters:
+        - name: cityId
+          in: query
+          schema:
+            type: string
+          description: Фильтр по городу
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Начало периода
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Конец периода
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Список событий
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  total:
+                    type: integer
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /events/{id}:
+    get:
+      summary: Получить детали события
+      operationId: getEventById
+      tags:
+        - Events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали события
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /articles:
+    get:
+      summary: Получить список статей
+      operationId: getArticles
+      tags:
+        - Articles
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Категория статьи
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Список статей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Article'
+                  total:
+                    type: integer
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /articles/{slug}:
+    get:
+      summary: Получить детали статьи
+      operationId: getArticleBySlug
+      tags:
+        - Articles
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали статьи
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -80,6 +378,183 @@ components:
           type: string
           format: uri
           description: URL флага страны
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    City:
+      type: object
+      required:
+        - id
+        - name
+        - countryId
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор города
+        name:
+          type: string
+          description: Название города
+        slug:
+          type: string
+          description: URL-friendly идентификатор
+        countryId:
+          type: string
+          description: ID страны
+        description:
+          type: string
+          description: Описание города
+        latitude:
+          type: number
+          format: float
+          description: Широта
+        longitude:
+          type: number
+          format: float
+          description: Долгота
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Place:
+      type: object
+      required:
+        - id
+        - name
+        - cityId
+        - category
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор места
+        name:
+          type: string
+          description: Название места
+        slug:
+          type: string
+          description: URL-friendly идентификатор
+        cityId:
+          type: string
+          description: ID города
+        category:
+          type: string
+          enum: [attraction, restaurant, hotel, shop, other]
+          description: Категория места
+        description:
+          type: string
+          description: Описание места
+        address:
+          type: string
+          description: Адрес места
+        latitude:
+          type: number
+          format: float
+          description: Широта
+        longitude:
+          type: number
+          format: float
+          description: Долгота
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: Ссылки на изображения
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Event:
+      type: object
+      required:
+        - id
+        - title
+        - cityId
+        - startDate
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор события
+        title:
+          type: string
+          description: Название события
+        slug:
+          type: string
+          description: URL-friendly идентификатор
+        cityId:
+          type: string
+          description: ID города
+        description:
+          type: string
+          description: Описание события
+        startDate:
+          type: string
+          format: date-time
+          description: Дата начала
+        endDate:
+          type: string
+          format: date-time
+          description: Дата окончания
+        location:
+          type: string
+          description: Место проведения
+        image:
+          type: string
+          format: uri
+          description: Ссылка на изображение
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Article:
+      type: object
+      required:
+        - id
+        - title
+        - slug
+        - content
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор статьи
+        title:
+          type: string
+          description: Заголовок статьи
+        slug:
+          type: string
+          description: URL-friendly идентификатор
+        excerpt:
+          type: string
+          description: Краткое описание
+        content:
+          type: string
+          description: Содержимое статьи (Markdown)
+        category:
+          type: string
+          description: Категория статьи
+        authorId:
+          type: string
+          description: ID автора
+        image:
+          type: string
+          format: uri
+          description: Ссылка на изображение
+        publishedAt:
+          type: string
+          format: date-time
+          description: Дата публикации
         createdAt:
           type: string
           format: date-time
@@ -130,7 +605,7 @@ components:
           example:
             error:
               code: NOT_FOUND
-              message: Country with id '123' not found
+              message: Resource not found
               traceId: 123e4567-e89b-12d3-a456-426614174000
 
     InternalError:

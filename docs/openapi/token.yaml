@@ -31,6 +31,111 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /transactions:
+    get:
+      summary: Получить историю транзакций
+      operationId: getTransactions
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: История транзакций
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /add:
+    post:
+      summary: Начислить Points (internal)
+      operationId: addPoints
+      tags:
+        - Internal
+      description: |
+        Внутренний endpoint для начисления Points.
+        Используется другими сервисами (service-to-service).
+      security:
+        - serviceAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPointsRequest'
+      responses:
+        '200':
+          description: Points начислены успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /subtract:
+    post:
+      summary: Списать Points (internal)
+      operationId: subtractPoints
+      tags:
+        - Internal
+      description: |
+        Внутренний endpoint для списания Points.
+        Используется другими сервисами (service-to-service).
+      security:
+        - serviceAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubtractPointsRequest'
+      responses:
+        '200':
+          description: Points списаны успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   schemas:
     Balance:
@@ -41,12 +146,96 @@ components:
       properties:
         userId:
           type: string
+          description: ID пользователя
         points:
           type: number
           description: Количество Points
         updatedAt:
           type: string
           format: date-time
+          description: Время последнего обновления
+
+    Transaction:
+      type: object
+      required:
+        - id
+        - userId
+        - amount
+        - type
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор транзакции
+        userId:
+          type: string
+          description: ID пользователя
+        amount:
+          type: number
+          description: Сумма транзакции (положительная для начисления, отрицательная для списания)
+        type:
+          type: string
+          enum:
+            - add
+            - subtract
+            - reward
+            - purchase
+          description: Тип транзакции
+        reason:
+          type: string
+          description: Причина транзакции
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Дополнительные данные транзакции
+        createdAt:
+          type: string
+          format: date-time
+          description: Время создания транзакции
+
+    AddPointsRequest:
+      type: object
+      required:
+        - userId
+        - amount
+        - reason
+      properties:
+        userId:
+          type: string
+          description: ID пользователя
+        amount:
+          type: number
+          minimum: 0.01
+          description: Количество Points для начисления
+        reason:
+          type: string
+          description: Причина начисления
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Дополнительные данные
+
+    SubtractPointsRequest:
+      type: object
+      required:
+        - userId
+        - amount
+        - reason
+      properties:
+        userId:
+          type: string
+          description: ID пользователя
+        amount:
+          type: number
+          minimum: 0.01
+          description: Количество Points для списания
+        reason:
+          type: string
+          description: Причина списания
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Дополнительные данные
 
     ErrorResponse:
       type: object
@@ -62,17 +251,35 @@ components:
           properties:
             code:
               type: string
+              enum:
+                - VALIDATION_ERROR
+                - BAD_REQUEST
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - CONFLICT
+                - RATE_LIMIT_EXCEEDED
+                - INTERNAL_ERROR
+                - SERVICE_UNAVAILABLE
             message:
               type: string
             traceId:
               type: string
               format: uuid
+            key:
+              type: string
+              description: Ключ поля с ошибкой (для валидации)
 
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    serviceAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Service-to-service authentication
 
   responses:
     Unauthorized:
@@ -81,6 +288,35 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    BadRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: BAD_REQUEST
+              message: Invalid request parameters
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    Conflict:
+      description: Конфликт (например, недостаточно Points)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: CONFLICT
+              message: Insufficient balance
+              traceId: 123e4567-e89b-12d3-a456-426614174000
 
     InternalError:
       description: Внутренняя ошибка сервера
@@ -88,3 +324,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: An internal error occurred
+              traceId: 123e4567-e89b-12d3-a456-426614174000

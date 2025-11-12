@@ -12,6 +12,10 @@ export default defineConfig({
           path: './packages/sdk/src/mutator.ts',
           name: 'customInstance',
         },
+        query: {
+          useQuery: true,
+          useInfinite: false,
+        },
       },
     },
     types: {
@@ -28,6 +32,10 @@ export default defineConfig({
         mutator: {
           path: './packages/sdk/src/mutator.ts',
           name: 'customInstance',
+        },
+        query: {
+          useQuery: true,
+          useInfinite: false,
         },
       },
     },
@@ -46,6 +54,10 @@ export default defineConfig({
           path: './packages/sdk/src/mutator.ts',
           name: 'customInstance',
         },
+        query: {
+          useQuery: true,
+          useInfinite: false,
+        },
       },
     },
     types: {
@@ -62,6 +74,10 @@ export default defineConfig({
         mutator: {
           path: './packages/sdk/src/mutator.ts',
           name: 'customInstance',
+        },
+        query: {
+          useQuery: true,
+          useInfinite: false,
         },
       },
     },

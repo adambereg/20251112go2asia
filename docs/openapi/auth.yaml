@@ -33,6 +33,36 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /webhook/clerk:
+    post:
+      summary: Webhook от Clerk для синхронизации пользователей
+      operationId: clerkWebhook
+      tags:
+        - Webhooks
+      description: |
+        Внутренний endpoint для обработки webhooks от Clerk.
+        Используется для создания и обновления профилей пользователей.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClerkWebhook'
+      responses:
+        '200':
+          description: Webhook обработан успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   schemas:
     UserProfile:
@@ -49,18 +79,62 @@ components:
           format: email
         name:
           type: string
+          description: Имя пользователя
         avatar:
           type: string
           format: uri
+          description: URL аватара
         role:
           type: string
           enum:
             - spacer
             - vip
             - pro
+          description: Роль пользователя
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ClerkWebhook:
+      type: object
+      required:
+        - type
+        - data
+      properties:
+        type:
+          type: string
+          enum:
+            - user.created
+            - user.updated
+            - user.deleted
+          description: Тип события
+        data:
+          type: object
+          required:
+            - id
+            - email_addresses
+          properties:
+            id:
+              type: string
+              description: Clerk user ID
+            email_addresses:
+              type: array
+              items:
+                type: object
+                properties:
+                  email_address:
+                    type: string
+                    format: email
+            first_name:
+              type: string
+            last_name:
+              type: string
+            image_url:
+              type: string
+              format: uri
 
     ErrorResponse:
       type: object
@@ -76,11 +150,24 @@ components:
           properties:
             code:
               type: string
+              enum:
+                - VALIDATION_ERROR
+                - BAD_REQUEST
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - CONFLICT
+                - RATE_LIMIT_EXCEEDED
+                - INTERNAL_ERROR
+                - SERVICE_UNAVAILABLE
             message:
               type: string
             traceId:
               type: string
               format: uuid
+            key:
+              type: string
+              description: Ключ поля с ошибкой (для валидации)
 
   securitySchemes:
     bearerAuth:
@@ -113,9 +200,26 @@ components:
               message: Access denied
               traceId: 123e4567-e89b-12d3-a456-426614174000
 
+    BadRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: BAD_REQUEST
+              message: Invalid request
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
     InternalError:
       description: Внутренняя ошибка сервера
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: An internal error occurred
+              traceId: 123e4567-e89b-12d3-a456-426614174000
