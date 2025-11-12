@@ -113,6 +113,20 @@ jobs:
           path: test-results/smoke-tests.log
           retention-days: 30
       
+      - name: Lighthouse CI
+        id: lighthouse
+        if: success()
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            https://staging.go2asia.space/
+            https://staging.go2asia.space/atlas
+            https://staging.go2asia.space/blog
+            https://staging.go2asia.space/pulse
+          configPath: .github/lhci.json
+          uploadArtifacts: true
+        continue-on-error: true
+      
       - name: Notify deployment status
         if: always()
         uses: actions/github-script@v7

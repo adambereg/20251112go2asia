@@ -1,0 +1,8 @@
+Завершение Фазы 0: Lighthouse, алёрты, SLO/SLI, runbooks, Go/No-Go
+
+- Добавлен Lighthouse CI в preview и staging workflows
+- Обновлена документация по Cloudflare Alerts с детальными инструкциями
+- Создан документ SLO/SLI с метриками и дашбордами
+- Обновлены Runbooks с P0 инцидентами (5xx, latency, timeouts, Clerk JWKS)
+- Создан Go/No-Go чеклист для принятия Фазы 0
+
