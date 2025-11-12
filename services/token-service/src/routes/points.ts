@@ -68,76 +68,54 @@ pointsRouter.post('/add', async (c) => {
       .where(eq(balances.userId, validated.userId))
       .limit(1);
     
-    if (!balance) {
-      // Создаём баланс если его нет
-      const [newBalance] = await db
-        .insert(balances)
-        .values({
-          userId: validated.userId,
-          points: 0,
-        })
-        .returning();
-      
-      const balanceBefore = 0;
-      const balanceAfter = validated.amount;
-      
-      // Создаём транзакцию в транзакции БД
-      const [transaction] = await db
-        .insert(transactions)
-        .values({
-          userId: validated.userId,
-          idempotencyKey: key || null,
-          type: 'earn',
-          status: 'completed',
-          amount: validated.amount,
-          balanceBefore,
-          balanceAfter,
-          description: validated.description || 'Points added',
-        })
-        .returning();
-      
-      // Обновляем баланс
-      await db
-        .update(balances)
-        .set({ points: balanceAfter, updatedAt: new Date() })
-        .where(eq(balances.userId, validated.userId));
+    const balanceBefore = balance?.points || 0;
+    const balanceAfter = balanceBefore + validated.amount;
+    
+    // Используем Drizzle транзакции для атомарности
+    try {
+      const result = await db.transaction(async (tx) => {
+        if (!balance) {
+          // Создаём баланс если его нет
+          await tx
+            .insert(balances)
+            .values({
+              userId: validated.userId,
+              points: 0,
+            });
+        }
+        
+        // Создаём транзакцию
+        const [transaction] = await tx
+          .insert(transactions)
+          .values({
+            userId: validated.userId,
+            idempotencyKey: key || null,
+            type: 'earn',
+            status: 'completed',
+            amount: validated.amount,
+            balanceBefore,
+            balanceAfter,
+            description: validated.description || 'Points added',
+          })
+          .returning();
+        
+        // Обновляем баланс
+        await tx
+          .update(balances)
+          .set({ points: balanceAfter, updatedAt: new Date() })
+          .where(eq(balances.userId, validated.userId));
+        
+        return transaction;
+      });
       
       return c.json({
-        transactionId: transaction.id,
+        transactionId: result.id,
         balanceBefore,
         balanceAfter,
       }, 201);
+    } catch (error) {
+      throw error;
     }
-    
-    const balanceBefore = balance.points;
-    const balanceAfter = balanceBefore + validated.amount;
-    
-    // Создаём транзакцию в транзакции БД
-    const [transaction] = await db
-      .insert(transactions)
-      .values({
-        userId: validated.userId,
-        idempotencyKey: key || null,
-        type: 'earn',
-        status: 'completed',
-        amount: validated.amount,
-        balanceBefore,
-        balanceAfter,
-        description: validated.description || 'Points added',
-      })
-      .returning();
-    
-    // Обновляем баланс
-    await db
-      .update(balances)
-      .set({ points: balanceAfter, updatedAt: new Date() })
-      .where(eq(balances.userId, validated.userId));
-    
-    return c.json({
-      transactionId: transaction.id,
-      balanceBefore,
-      balanceAfter,
-    }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json(
