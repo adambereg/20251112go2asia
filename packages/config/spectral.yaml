@@ -1,0 +1,17 @@
+extends: ["spectral:oas", "spectral:asyncapi"]
+
+rules:
+  # Отключить некоторые строгие правила для MVP
+  operation-operationId: off
+  operation-tags: off
+  
+  # Обязательные правила
+  operation-description: error
+  info-description: error
+  tag-description: error
+  
+  # Запретить использование deprecated
+  no-deprecated: warn
+  
+  # Единый формат ошибок
+  oas3-valid-schema-example: error

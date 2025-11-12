@@ -6,8 +6,7 @@
 
 import { z } from 'zod';
 
-// Базовые схемы будут добавлены позже
-
+// Единый формат ошибки API
 export const ErrorResponseSchema = z.object({
   error: z.object({
     code: z.string(),
@@ -18,4 +17,7 @@ export const ErrorResponseSchema = z.object({
 });
 
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
+
+// Реэкспорт для использования в других пакетах
+export * from 'zod';
 

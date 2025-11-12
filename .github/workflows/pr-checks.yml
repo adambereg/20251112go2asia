@@ -1,0 +1,80 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
+
+  validate-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Spectral
+        run: npm install -g @stoplight/spectral-cli
+      - name: Validate OpenAPI
+        run: spectral lint docs/openapi/**/*.yaml
+
+  generate-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm gen:all
+      - name: Check for changes
+        run: |
+          if [ -n "$(git diff --exit-code packages/types packages/sdk)" ]; then
+            echo "Generated types/SDK differ from committed files"
+            echo "Please run 'pnpm gen:all' and commit the changes"
+            git diff packages/types packages/sdk
+            exit 1
+          fi
+
+  check-jwt-libraries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      - name: Check for forbidden JWT libraries
+        run: |
+          if pnpm list jsonwebtoken 2>/dev/null | grep -q "jsonwebtoken"; then
+            echo "ERROR: jsonwebtoken found! Use jose instead."
+            exit 1
+          fi
+          if pnpm list @tsndr/cloudflare-worker-jwt 2>/dev/null | grep -q "@tsndr/cloudflare-worker-jwt"; then
+            echo "ERROR: @tsndr/cloudflare-worker-jwt found! Use jose instead."
+            exit 1
+          fi
+          echo "✓ Only jose is used for JWT"

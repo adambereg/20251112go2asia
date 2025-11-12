@@ -39,6 +39,12 @@
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@8.15.0"
+  "packageManager": "pnpm@8.15.0",
+  "pnpm": {
+    "overrides": {
+      "jsonwebtoken": "npm:jose@latest",
+      "@tsndr/cloudflare-worker-jwt": "npm:jose@latest"
+    }
+  }
 }
 

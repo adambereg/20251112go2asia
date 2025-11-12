@@ -1,0 +1,146 @@
+openapi: 3.1.0
+info:
+  title: Go2Asia Content Service API
+  version: 0.1.0
+  description: API для работы с контентом (страны, города, места, события, статьи)
+
+servers:
+  - url: https://content.go2asia.space/v1
+    description: Production
+  - url: https://content-staging.go2asia.space/v1
+    description: Staging
+
+paths:
+  /countries:
+    get:
+      summary: Получить список стран
+      operationId: getCountries
+      tags:
+        - Countries
+      responses:
+        '200':
+          description: Список стран
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Country'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /countries/{id}:
+    get:
+      summary: Получить детали страны
+      operationId: getCountryById
+      tags:
+        - Countries
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали страны
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  schemas:
+    Country:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор страны
+        name:
+          type: string
+          description: Название страны
+        slug:
+          type: string
+          description: URL-friendly идентификатор
+        description:
+          type: string
+          description: Описание страны
+        flag:
+          type: string
+          format: uri
+          description: URL флага страны
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - traceId
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - BAD_REQUEST
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - CONFLICT
+                - RATE_LIMIT_EXCEEDED
+                - INTERNAL_ERROR
+                - SERVICE_UNAVAILABLE
+            message:
+              type: string
+            traceId:
+              type: string
+              format: uuid
+            key:
+              type: string
+              description: Ключ поля с ошибкой (для валидации)
+
+  responses:
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: NOT_FOUND
+              message: Country with id '123' not found
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    InternalError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: An internal error occurred
+              traceId: 123e4567-e89b-12d3-a456-426614174000

@@ -1,0 +1,31 @@
+extends: ["spectral:oas"]
+
+rules:
+  # Требовать описания для всех операций
+  operation-description:
+    severity: error
+  
+  # Требовать теги для операций
+  operation-tags:
+    severity: error
+  
+  # Требовать summary для операций
+  operation-summary:
+    severity: error
+  
+  # Требовать версионирование API
+  info-version:
+    severity: error
+  
+  # Требовать контакты
+  info-contact:
+    severity: warn
+  
+  # Запретить использование anyOf/oneOf без примеров
+  oas3-valid-schema-example:
+    severity: warn
+  
+  # Требовать примеры для схем
+  schema-example:
+    severity: warn
+

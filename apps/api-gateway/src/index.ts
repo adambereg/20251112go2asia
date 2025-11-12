@@ -2,6 +2,9 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger as honoLogger } from 'hono/logger';
 import { generateRequestId } from '@go2asia/logger';
+import { rateLimit } from './middleware/rateLimit';
+import { cacheMiddleware } from './middleware/cache';
+import { createErrorResponse } from './utils/errors';
 
 const app = new Hono();
 
@@ -29,7 +32,7 @@ app.use(
 // Logger middleware
 app.use('*', honoLogger());
 
-// Health check
+// Health check (без rate limit и кэша)
 app.get('/health', (c) => {
   return c.json({
     status: 'ok',
@@ -38,12 +41,40 @@ app.get('/health', (c) => {
   });
 });
 
-// Ready check
+// Ready check (без rate limit и кэша)
 app.get('/ready', (c) => {
   return c.json({ status: 'ready' });
 });
 
-// API routes будут добавлены позже
+// Rate limiting для публичных GET
+app.use('/v1/api/content/*', rateLimit('public-get'));
+
+// Rate limiting для приватных endpoints
+app.use('/v1/api/token/*', rateLimit('private-get'));
+app.use('/v1/api/referral/*', rateLimit('private-get'));
+app.use('/v1/api/auth/*', rateLimit('private-get'));
+
+// Rate limiting для POST
+app.use('*', async (c, next) => {
+  if (c.req.method === 'POST' || c.req.method === 'PUT' || c.req.method === 'PATCH') {
+    return rateLimit('post')(c, next);
+  }
+  await next();
+});
+
+// Cache middleware для публичных GET
+app.use('/v1/api/content/*', cacheMiddleware(true));
+
+// Cache middleware для приватных endpoints (no-store)
+app.use('/v1/api/token/*', cacheMiddleware(false));
+app.use('/v1/api/referral/*', cacheMiddleware(false));
+app.use('/v1/api/auth/*', cacheMiddleware(false));
+
+// API routes
+import { contentRouter } from './routes/content';
+app.route('/v1/api/content', contentRouter);
+
+// Root endpoint
 app.get('/', (c) => {
   return c.json({
     message: 'Go2Asia API Gateway',
@@ -51,5 +82,33 @@ app.get('/', (c) => {
   });
 });
 
-export default app;
+// Error handler
+app.onError((err, c) => {
+  const requestId = c.get('requestId') || generateRequestId();
+  console.error('Error:', err);
+  
+  return c.json(
+    createErrorResponse(
+      'INTERNAL_ERROR',
+      'An internal error occurred',
+      requestId
+    ),
+    500
+  );
+});
 
+// 404 handler
+app.notFound((c) => {
+  const requestId = c.get('requestId') || generateRequestId();
+  
+  return c.json(
+    createErrorResponse(
+      'NOT_FOUND',
+      'Route not found',
+      requestId
+    ),
+    404
+  );
+});
+
+export default app;
