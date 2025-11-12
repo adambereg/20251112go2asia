@@ -54,8 +54,9 @@ export function authMiddleware() {
 
 /**
  * Middleware для service-to-service аутентификации
+ * Строгая проверка: iss=gateway, aud=<service>, kid, exp/nbf
  */
-export function serviceAuthMiddleware() {
+export function serviceAuthMiddleware(expectedAudience?: string) {
   return async (c: Context, next: Next) => {
     const requestId = c.get('requestId') || 'unknown';
     const authHeader = c.req.header('Authorization');
@@ -86,7 +87,70 @@ export function serviceAuthMiddleware() {
     }
     
     try {
-      await verifyJWT(token, serviceSecret);
+      const payload = await verifyJWT(token, serviceSecret);
+      
+      // Проверка iss (issuer) - должен быть gateway
+      if (payload.iss !== 'gateway') {
+        return c.json(
+          createErrorResponse(
+            'UNAUTHORIZED',
+            'Invalid token issuer',
+            requestId
+          ),
+          401
+        );
+      }
+      
+      // Проверка aud (audience) - должен соответствовать сервису
+      if (expectedAudience && payload.aud !== expectedAudience) {
+        return c.json(
+          createErrorResponse(
+            'UNAUTHORIZED',
+            'Invalid token audience',
+            requestId
+          ),
+          401
+        );
+      }
+      
+      // Проверка kid (key ID) - должен присутствовать для ротации ключей
+      if (!payload.kid) {
+        return c.json(
+          createErrorResponse(
+            'UNAUTHORIZED',
+            'Token missing key ID',
+            requestId
+          ),
+          401
+        );
+      }
+      
+      // Проверка exp (expiration) и nbf (not before) с допуском по времени
+      const now = Math.floor(Date.now() / 1000);
+      const clockSkew = 60; // 60 секунд допуск на рассинхронизацию часов
+      
+      if (payload.exp && payload.exp < now - clockSkew) {
+        return c.json(
+          createErrorResponse(
+            'UNAUTHORIZED',
+            'Token expired',
+            requestId
+          ),
+          401
+        );
+      }
+      
+      if (payload.nbf && payload.nbf > now + clockSkew) {
+        return c.json(
+          createErrorResponse(
+            'UNAUTHORIZED',
+            'Token not yet valid',
+            requestId
+          ),
+          401
+        );
+      }
+      
       await next();
     } catch (error) {
       return c.json(

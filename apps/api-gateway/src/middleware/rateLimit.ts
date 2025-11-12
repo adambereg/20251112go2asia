@@ -42,9 +42,16 @@ export function rateLimit(type: keyof typeof LIMITS) {
       store[key] = { count: 0, resetAt: now + limit.window };
     }
 
+    // Установка заголовков (всегда, даже при превышении лимита)
+    c.header('X-RateLimit-Limit', limit.max.toString());
+    
     // Проверка лимита
     if (store[key].count >= limit.max) {
       const requestId = c.get('requestId') || 'unknown';
+      // Заголовки при превышении лимита
+      c.header('X-RateLimit-Remaining', '0');
+      c.header('X-RateLimit-Reset', new Date(store[key].resetAt).toISOString());
+      
       return c.json(
         {
           error: {
@@ -60,8 +67,7 @@ export function rateLimit(type: keyof typeof LIMITS) {
     // Увеличение счётчика
     store[key].count++;
 
-    // Установка заголовков
-    c.header('X-RateLimit-Limit', limit.max.toString());
+    // Заголовки при успешном запросе
     c.header('X-RateLimit-Remaining', Math.max(0, limit.max - store[key].count).toString());
     c.header('X-RateLimit-Reset', new Date(store[key].resetAt).toISOString());
 

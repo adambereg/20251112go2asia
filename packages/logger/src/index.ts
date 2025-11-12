@@ -1,7 +1,10 @@
 /**
  * Единый логгер для всех сервисов Go2Asia
  * Поддерживает requestId для трассировки запросов
+ * Автоматически маскирует PII (email, телефон, токены)
  */
+
+import { maskPII } from './pii';
 
 export function generateRequestId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -23,18 +26,17 @@ export function logRequest(
   status: number,
   context?: LogContext
 ): void {
-  console.log(
-    JSON.stringify({
-      level: 'info',
-      requestId,
-      method,
-      path,
-      duration,
-      status,
-      timestamp: new Date().toISOString(),
-      ...context,
-    })
-  );
+  const logData = {
+    level: 'info',
+    requestId,
+    method,
+    path,
+    duration,
+    status,
+    timestamp: new Date().toISOString(),
+    ...(context ? maskPII(context) : {}),
+  };
+  console.log(JSON.stringify(logData));
 }
 
 export function logError(
@@ -42,19 +44,18 @@ export function logError(
   error: Error,
   context?: LogContext
 ): void {
-  console.error(
-    JSON.stringify({
-      level: 'error',
-      requestId,
-      error: {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      },
-      timestamp: new Date().toISOString(),
-      ...context,
-    })
-  );
+  const logData = {
+    level: 'error',
+    requestId,
+    error: {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    },
+    timestamp: new Date().toISOString(),
+    ...(context ? maskPII(context) : {}),
+  };
+  console.error(JSON.stringify(logData));
 }
 
 export function logInfo(
@@ -62,15 +63,14 @@ export function logInfo(
   message: string,
   context?: LogContext
 ): void {
-  console.log(
-    JSON.stringify({
-      level: 'info',
-      requestId,
-      message,
-      timestamp: new Date().toISOString(),
-      ...context,
-    })
-  );
+  const logData = {
+    level: 'info',
+    requestId,
+    message,
+    timestamp: new Date().toISOString(),
+    ...(context ? maskPII(context) : {}),
+  };
+  console.log(JSON.stringify(logData));
 }
 
 export function logWarn(
@@ -78,13 +78,12 @@ export function logWarn(
   message: string,
   context?: LogContext
 ): void {
-  console.warn(
-    JSON.stringify({
-      level: 'warn',
-      requestId,
-      message,
-      timestamp: new Date().toISOString(),
-      ...context,
-    })
-  );
+  const logData = {
+    level: 'warn',
+    requestId,
+    message,
+    timestamp: new Date().toISOString(),
+    ...(context ? maskPII(context) : {}),
+  };
+  console.warn(JSON.stringify(logData));
 }

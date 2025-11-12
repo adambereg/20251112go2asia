@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { generateRequestId, logRequest, logError } from '@go2asia/logger';
+import { checkClerkJWKS } from './utils/clerk';
 
 const app = new Hono();
 
@@ -41,9 +42,29 @@ app.get('/health', (c) => {
 
 // Ready check
 app.get('/ready', async (c) => {
-  // Auth Service может не иметь БД (использует Clerk)
-  // Проверяем только базовую готовность
-  return c.json({ status: 'ready' });
+  const requestId = c.get('requestId') || generateRequestId();
+  try {
+    // Проверяем доступность JWKS от Clerk
+    const clerkReady = await checkClerkJWKS();
+    if (!clerkReady) {
+      return c.json(
+        {
+          status: 'not ready',
+          error: 'Clerk JWKS endpoint unavailable',
+        },
+        503
+      );
+    }
+    return c.json({ status: 'ready' });
+  } catch (error) {
+    return c.json(
+      {
+        status: 'not ready',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      503
+    );
+  }
 });
 
 app.get('/', (c) => {
