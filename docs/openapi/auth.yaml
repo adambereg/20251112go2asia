@@ -26,10 +26,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -60,6 +64,8 @@ paths:
                     type: boolean
         '400':
           $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -211,6 +217,32 @@ components:
               code: BAD_REQUEST
               message: Invalid request
               traceId: 123e4567-e89b-12d3-a456-426614174000
+
+    RateLimitExceeded:
+      description: Превышен лимит запросов
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: Rate limit exceeded. Try again later.
+              traceId: 123e4567-e89b-12d3-a456-426614174000
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Лимит запросов
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Оставшееся количество запросов
+        X-RateLimit-Reset:
+          schema:
+            type: string
+            format: date-time
+          description: Время сброса лимита
 
     InternalError:
       description: Внутренняя ошибка сервера
