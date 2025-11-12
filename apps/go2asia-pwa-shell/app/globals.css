@@ -16,5 +16,27 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: #1f2937;
+  background-color: #ffffff;
+}
+
+/* Tailwind CSS будет добавлен позже */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Анимация для skeleton */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
