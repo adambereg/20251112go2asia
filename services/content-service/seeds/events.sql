@@ -38,8 +38,7 @@ VALUES
     'Групповая экскурсия с русскоязычным гидом',
     '2025-11-15T08:00:00Z',
     '2025-11-15T12:00:00Z',
-    '{"price": "500000 VND", "guide": "Russian-speaking", "group_size": 10}'::jsonb,
-    true,
+    '{"price": "500000 VND", "guide": "Russian-speaking", "group_size": 10, "is_russian_friendly": true}'::jsonb,
     NOW(),
     NOW()
   ),
@@ -52,8 +51,7 @@ VALUES
     'Вечер русской кухни и музыки',
     '2025-11-25T18:00:00Z',
     '2025-11-25T23:00:00Z',
-    '{"price": "300000 VND", "includes": "Dinner + Live Music"}'::jsonb,
-    true,
+    '{"price": "300000 VND", "includes": "Dinner + Live Music", "is_russian_friendly": true}'::jsonb,
     NOW(),
     NOW()
   )

@@ -95,20 +95,19 @@ app.use('/v1/api/auth/*', cacheMiddleware(false));
 import { contentRouter } from './routes/content';
 app.route('/v1/api/content', contentRouter);
 
-// Root endpoint
-app.get('/', (c) => {
-  const gitSha = process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || 'unknown';
-  return c.json({
-    message: 'Go2Asia API Gateway',
-    version: '0.1.0',
-  });
-});
-
-// Добавляем X-Version заголовок во все ответы (после обработки запроса)
+// Добавляем X-Version заголовок во все ответы
 app.use('*', async (c, next) => {
   await next();
   const gitSha = process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || 'unknown';
   c.header('X-Version', gitSha.substring(0, 7)); // Короткий SHA
+});
+
+// Root endpoint
+app.get('/', (c) => {
+  return c.json({
+    message: 'Go2Asia API Gateway',
+    version: '0.1.0',
+  });
 });
 
 // Error handler
