@@ -17,9 +17,6 @@ const sql = neon(connectionString);
 // Создаём Drizzle instance с HTTP адаптером
 export const db = drizzle(sql, { schema });
 
-// Экспортируем sql для использования в транзакциях
-export { sql };
-
 /**
  * Проверка подключения к БД
  * Быстрый SELECT 1 + проверка наличия критичных таблиц

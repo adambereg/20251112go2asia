@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { db, sql } from '../utils/db';
+import { db } from '../utils/db';
 import { balances, transactions } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { createErrorResponse } from '../../../apps/api-gateway/src/utils/errors';
@@ -231,47 +231,41 @@ pointsRouter.post('/subtract', async (c) => {
     const balanceBefore = balance.points;
     const balanceAfter = balanceBefore - validated.amount;
     
-    // Выполняем операции в транзакции БД для атомарности
-    await sql`BEGIN`;
+    // Используем Drizzle транзакции для атомарности
     try {
-      // Создаём транзакцию
-      const [transaction] = await db
-        .insert(transactions)
-        .values({
-          userId: validated.userId,
-          idempotencyKey: key || null,
-          type: 'spend',
-          status: 'completed',
-          amount: -validated.amount,
-          balanceBefore,
-          balanceAfter,
-          description: validated.description || 'Points subtracted',
-        })
-        .returning();
-      
-      // Обновляем баланс
-      await db
-        .update(balances)
-        .set({ points: balanceAfter, updatedAt: new Date() })
-        .where(eq(balances.userId, validated.userId));
-      
-      await sql`COMMIT`;
+      const result = await db.transaction(async (tx) => {
+        // Создаём транзакцию
+        const [transaction] = await tx
+          .insert(transactions)
+          .values({
+            userId: validated.userId,
+            idempotencyKey: key || null,
+            type: 'spend',
+            status: 'completed',
+            amount: -validated.amount,
+            balanceBefore,
+            balanceAfter,
+            description: validated.description || 'Points subtracted',
+          })
+          .returning();
+        
+        // Обновляем баланс
+        await tx
+          .update(balances)
+          .set({ points: balanceAfter, updatedAt: new Date() })
+          .where(eq(balances.userId, validated.userId));
+        
+        return transaction;
+      });
       
       return c.json({
-        transactionId: transaction.id,
+        transactionId: result.id,
         balanceBefore,
         balanceAfter,
       }, 201);
     } catch (error) {
-      await sql`ROLLBACK`;
       throw error;
     }
-    
-    return c.json({
-      transactionId: transaction.id,
-      balanceBefore,
-      balanceAfter,
-    }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json(
