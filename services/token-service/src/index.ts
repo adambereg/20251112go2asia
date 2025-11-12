@@ -66,6 +66,10 @@ app.get('/ready', async (c) => {
   }
 });
 
+// API routes
+import { pointsRouter } from './routes/points';
+app.route('/v1/points', pointsRouter);
+
 app.get('/', (c) => {
   return c.json({
     message: 'Go2Asia Token Service',

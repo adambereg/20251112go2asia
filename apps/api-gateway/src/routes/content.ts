@@ -31,6 +31,20 @@ contentRouter.get('/countries/:id', async (c) => {
   return response;
 });
 
+contentRouter.get('/cities', async (c) => {
+  const queryString = c.req.url.split('?')[1] || '';
+  const path = `/v1/cities${queryString ? `?${queryString}` : ''}`;
+  const response = await proxyRequest(c, CONTENT_SERVICE_URL, path);
+  return response;
+});
+
+contentRouter.get('/places', async (c) => {
+  const queryString = c.req.url.split('?')[1] || '';
+  const path = `/v1/places${queryString ? `?${queryString}` : ''}`;
+  const response = await proxyRequest(c, CONTENT_SERVICE_URL, path);
+  return response;
+});
+
 // Пример POST с валидацией
 contentRouter.post('/countries', validateBody(createCountrySchema), async (c) => {
   const path = '/v1/countries';

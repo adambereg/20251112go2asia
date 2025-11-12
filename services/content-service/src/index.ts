@@ -66,6 +66,10 @@ app.get('/ready', async (c) => {
   }
 });
 
+// API routes
+import { contentRouter } from './routes/content';
+app.route('/v1', contentRouter);
+
 app.get('/', (c) => {
   return c.json({
     message: 'Go2Asia Content Service',

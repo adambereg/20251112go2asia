@@ -19,14 +19,22 @@ export const db = drizzle(sql, { schema });
 
 /**
  * Проверка подключения к БД
+ * Быстрый SELECT 1 + проверка наличия критичных таблиц
  */
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
+    // Быстрая проверка подключения
     await sql`SELECT 1`;
-    // Проверяем доступность таблицы миграций
-    await sql`SELECT 1 FROM schema_migrations LIMIT 1`.catch(() => {
+    
+    // Проверяем доступность таблицы миграций (критичная таблица)
+    try {
+      await sql`SELECT 1 FROM schema_migrations LIMIT 1`;
+    } catch {
       // Таблица может не существовать на первом запуске - это нормально
-    });
+      // Но если БД уже настроена, таблица должна существовать
+      return false;
+    }
+    
     return true;
   } catch (error) {
     console.error('Database connection check failed:', error);

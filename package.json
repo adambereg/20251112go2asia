@@ -28,12 +28,14 @@
     "db:migrate:prod": "echo 'Database migrations for production (TODO)'",
     "db:rollback:prod": "echo 'Database rollback for production (TODO)'",
     "test:smoke:preview": "cd apps/go2asia-pwa-shell && playwright test tests/smoke.spec.ts",
-    "test:smoke:staging": "cd apps/go2asia-pwa-shell && API_URL=https://api-staging.go2asia.space playwright test tests/smoke.spec.ts",
-    "test:smoke:prod": "cd apps/go2asia-pwa-shell && API_URL=https://api.go2asia.space playwright test tests/smoke.spec.ts",
+    "test:smoke:staging": "playwright test tests/smoke/staging.test.ts",
+    "test:smoke:prod": "API_URL=https://api.go2asia.space playwright test tests/smoke/staging.test.ts",
+    "test:contracts": "playwright test tests/contracts/**/*.test.ts",
     "test:e2e": "cd apps/go2asia-pwa-shell && playwright test"
   },
   "devDependencies": {
     "@orval/core": "^7.3.4",
+    "@playwright/test": "^1.40.0",
     "@stoplight/spectral-cli": "^6.13.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",

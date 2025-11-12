@@ -89,14 +89,21 @@ jobs:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_STAGING_SITE_ID }}
         continue-on-error: true # Пока Netlify не настроен
       
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+        continue-on-error: true
+      
       - name: Smoke tests (staging)
         id: smoke-tests
         run: |
           mkdir -p test-results
-          pnpm test:smoke:staging > test-results/smoke-tests.log 2>&1 || true
-        env:
-          API_URL: https://api-staging.go2asia.space
-        continue-on-error: true # Пока тесты не настроены
+          API_URL=https://api-staging.go2asia.space pnpm test:smoke:staging > test-results/smoke-tests.log 2>&1 || true
+        continue-on-error: true
+      
+      - name: Contract tests (headers)
+        run: |
+          API_URL=https://api-staging.go2asia.space pnpm test:contracts > test-results/contract-tests.log 2>&1 || true
+        continue-on-error: true
       
       - name: Upload smoke test logs
         if: always()
