@@ -8,6 +8,7 @@ routes = [
 ]
 
 [env.staging]
+name = "go2asia-content-service-staging"
 routes = [
   { pattern = "content-staging.go2asia.space/*", zone_name = "go2asia.space" }
 ]
