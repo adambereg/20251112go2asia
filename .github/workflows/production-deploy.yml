@@ -16,6 +16,14 @@ jobs:
   validate-inputs:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify manual trigger
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          echo "❌ ERROR: Production deployment can only be triggered manually via workflow_dispatch"
+          echo "Current event: ${{ github.event_name }}"
+          echo "This workflow must be triggered manually, not automatically!"
+          exit 1
+      
       - name: Validate confirmation
         if: github.event.inputs.confirm != 'deploy'
         run: |
