@@ -1,7 +1,5 @@
-Исправлены домены для referral-service и обновлён чеклист миграции
+Добавлено руководство по секретам Cloudflare Workers
 
-- Исправлены routes в services/referral-service/wrangler.toml:
-  - production: connect.go2asia.space → referral.go2asia.space
-  - staging: connect-staging.go2asia.space → referral-staging.go2asia.space
-- Обновлён MIGRATION_CHECKLIST.md с отметками о проверке wrangler.toml файлов
-
+- Создан CLOUDFLARE_SECRETS_GUIDE.md с объяснением как работать с секретами для staging и production
+- Обновлён MIGRATION_CHECKLIST.md с пояснениями о секретах
+- Разъяснено что имя секрета одинаковое, но значения разные для разных окружений

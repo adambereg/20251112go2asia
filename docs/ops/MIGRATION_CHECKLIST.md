@@ -110,9 +110,10 @@
   - [x] `SERVICE_JWT_SECRET` (если используется)
 
 - [ ] **Content Service** (`go2asia-content-service`)
-  - [ ] `DATABASE_URL` (staging)
-  - [ ] `DATABASE_URL` (production)
-  - [ ] `SERVICE_JWT_SECRET`
+  - [ ] `DATABASE_URL` (staging) — добавить в Cloudflare Dashboard для staging Worker/deployment
+  - [ ] `DATABASE_URL` (production) — добавить в Cloudflare Dashboard для production Worker/deployment
+  - [ ] `SERVICE_JWT_SECRET` — общий для обоих окружений
+  - **💡 Примечание:** Имя секрета одинаковое (`DATABASE_URL`), но значения разные для staging и production. См. [CLOUDFLARE_SECRETS_GUIDE.md](CLOUDFLARE_SECRETS_GUIDE.md)
 
 - [ ] **Auth Service** (`go2asia-auth-service`)
   - [ ] `CLERK_SECRET_KEY`
@@ -132,11 +133,15 @@
 
 **Как проверить:**
 1. Cloudflare Dashboard → Workers & Pages
-2. Выбрать Worker
+2. Выбрать Worker (для staging или production)
 3. Settings → Variables and Secrets
 4. Проверить что все секреты на месте
 
-**Примечание:** Секреты в Cloudflare Workers не зависят от GitHub репозитория и остаются прежними. Просто проверьте что они есть.
+**💡 Важно:** Имя секрета одинаковое (`DATABASE_URL`), но значения разные для staging и production. Нужно добавить секрет отдельно для каждого окружения в Cloudflare Dashboard.
+
+**Подробнее:** См. [CLOUDFLARE_SECRETS_GUIDE.md](CLOUDFLARE_SECRETS_GUIDE.md) для детальных инструкций.
+
+**Примечание:** Секреты в Cloudflare Workers не зависят от GitHub репозитория и остаются прежними. Просто проверьте что они есть для каждого окружения.
 
 ---
 
