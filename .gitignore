@@ -63,7 +63,7 @@ logs/
 
 # pnpm
 .pnpm-store/
-pnpm-lock.yaml
+# pnpm-lock.yaml - НЕ игнорируем, нужен для CI/CD
 
 # Turborepo
 .turbo/
