@@ -28,25 +28,50 @@ Cloudflare автоматически использует правильный 
 
 ### Способ 1: Через Cloudflare Dashboard (рекомендуется)
 
-#### Для Staging окружения:
+#### ⚠️ ВАЖНО: Редактирование существующих секретов
 
-1. Откройте [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. Перейдите в **Workers & Pages**
-3. Найдите Worker (например, `content-service-production` или `content-service-staging`)
-4. Откройте **Settings → Variables and Secrets**
-5. Нажмите **+ Add** в секции **Secrets**
-6. Введите:
-   - **Name:** `DATABASE_URL`
-   - **Value:** Connection string для staging (из Neon)
-7. Нажмите **Save**
-
-**Важно:** Если у вас есть отдельные Workers для staging и production (например, `content-service-staging` и `content-service-production`), нужно добавить секрет в каждый Worker отдельно.
+**Если секрет уже существует:**
+- ❌ **Нельзя** добавить второй секрет с тем же именем (Cloudflare покажет ошибку "Name already in use")
+- ✅ **Нужно** отредактировать существующий секрет (нажать на иконку **карандаша** рядом с секретом)
 
 #### Для Production окружения:
 
-1. Найдите Worker для production (например, `content-service-production`)
-2. Откройте **Settings → Variables and Secrets**
-3. Добавьте `DATABASE_URL` с production connection string
+1. Откройте [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. Перейдите в **Workers & Pages**
+3. Найдите **Production Worker** (например, `content-service-production`)
+4. Откройте **Settings → Variables and Secrets**
+5. Найдите секрет `DATABASE_URL` в списке
+6. **Если секрет уже есть:**
+   - Нажмите на иконку **карандаша** (Edit) рядом с `DATABASE_URL`
+   - Введите production connection string из Neon
+   - Нажмите **Save**
+7. **Если секрета нет:**
+   - Нажмите **+ Add** в секции **Secrets**
+   - Введите:
+     - **Type:** `Secret`
+     - **Name:** `DATABASE_URL`
+     - **Value:** Production connection string из Neon
+   - Нажмите **Save**
+
+#### Для Staging окружения:
+
+1. Перейдите в **Workers & Pages**
+2. Найдите **Staging Worker** (например, `content-service-staging`)
+   - **Если staging Worker не существует**, создайте его через деплой с `--env staging` или через Dashboard
+3. Откройте **Settings → Variables and Secrets**
+4. **Если секрет уже есть:**
+   - Нажмите на иконку **карандаша** (Edit) рядом с `DATABASE_URL`
+   - Введите staging connection string из Neon
+   - Нажмите **Save**
+5. **Если секрета нет:**
+   - Нажмите **+ Add** в секции **Secrets**
+   - Введите:
+     - **Type:** `Secret`
+     - **Name:** `DATABASE_URL`
+     - **Value:** Staging connection string из Neon
+   - Нажмите **Save**
+
+**Важно:** Если у вас есть отдельные Workers для staging и production (например, `content-service-staging` и `content-service-production`), нужно настроить секрет в **каждом Worker отдельно**.
 
 ### Способ 2: Через Wrangler CLI
 
@@ -190,6 +215,21 @@ Workers & Pages
 
 ## Troubleshooting
 
+### Проблема: "Name already in use" при добавлении секрета
+
+**Ошибка:** При попытке добавить `DATABASE_URL` Cloudflare показывает "Name already in use"
+
+**Причина:** Секрет с таким именем уже существует в этом Worker
+
+**Решение:**
+1. Не пытайтесь добавить новый секрет с тем же именем
+2. Найдите существующий `DATABASE_URL` в списке секретов
+3. Нажмите на иконку **карандаша** (Edit) рядом с секретом
+4. Обновите значение на правильное connection string
+5. Нажмите **Save**
+
+**Важно:** В одном Worker может быть только один секрет с именем `DATABASE_URL`. Для staging и production нужны **отдельные Workers** или **отдельные deployments**.
+
 ### Проблема: Worker не видит секрет
 
 **Решение:**
@@ -203,6 +243,7 @@ Workers & Pages
 1. Проверьте что секрет добавлен для правильного Worker/deployment
 2. Убедитесь что деплой идёт в правильное окружение
 3. Проверьте `wrangler.toml` — правильно ли настроены `[env.staging]` и `[env.production]`
+4. **Отредактируйте** существующий секрет, если значение неправильное (не добавляйте новый!)
 
 ---
 
