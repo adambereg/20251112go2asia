@@ -67,7 +67,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
           workingDirectory: apps/api-gateway
-          command: deploy
+          command: deploy --env staging
         continue-on-error: true # Пока Cloudflare не настроен
       
       - name: Deploy Services to Cloudflare (staging)
@@ -76,7 +76,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
           workingDirectory: services/content-service
-          command: deploy
+          command: deploy --env staging
         continue-on-error: true
       
       - name: Deploy PWA to Netlify (staging)

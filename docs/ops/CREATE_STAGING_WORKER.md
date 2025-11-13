@@ -18,7 +18,7 @@ Staging Worker создаётся автоматически при первом
 
 ### Шаг 1: Проверка конфигурации
 
-Убедитесь что в `services/content-service/wrangler.toml` правильно настроено staging окружение:
+✅ **Уже настроено:** В `services/content-service/wrangler.toml` добавлено явное имя для staging:
 
 ```toml
 name = "go2asia-content-service"
@@ -39,13 +39,13 @@ routes = [
 
 ### Шаг 2: Запуск деплоя
 
-1. Откройте GitHub репозиторий
+1. Откройте GitHub репозиторий: `https://github.com/adambereg/20251112go2asia`
 2. Перейдите в **Actions**
 3. Найдите workflow **"Deploy to Staging"**
 4. Нажмите **"Run workflow"** → выберите ветку `main` → **"Run workflow"**
 5. Дождитесь завершения деплоя
 
-**Результат:** Worker `go2asia-content-service-staging` будет создан автоматически при первом деплое.
+**Результат:** Worker `go2asia-content-service-staging` будет создан автоматически при первом деплое с правильным именем и настройками.
 
 ### Шаг 3: Проверка создания Worker
 
