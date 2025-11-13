@@ -120,9 +120,22 @@ jobs:
           path: test-results/smoke-tests.log
           retention-days: 30
       
+      - name: Check if staging site is accessible
+        id: check-site
+        run: |
+          echo "Checking if staging.go2asia.space is accessible..."
+          if curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://staging.go2asia.space/ | grep -q "200\|301\|302"; then
+            echo "Site is accessible"
+            echo "accessible=true" >> $GITHUB_OUTPUT
+          else
+            echo "Site is not accessible yet (may not be deployed)"
+            echo "accessible=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+      
       - name: Lighthouse CI
         id: lighthouse
-        if: success()
+        if: success() && steps.check-site.outputs.accessible == 'true'
         uses: treosh/lighthouse-ci-action@v11
         with:
           urls: |
@@ -133,6 +146,12 @@ jobs:
           configPath: .github/lhci.json
           uploadArtifacts: true
         continue-on-error: true
+      
+      - name: Lighthouse CI skipped
+        if: steps.check-site.outputs.accessible != 'true'
+        run: |
+          echo "⚠️ Lighthouse CI skipped: staging.go2asia.space is not accessible yet"
+          echo "This is normal if Netlify deployment hasn't completed or site is not configured yet"
       
       - name: Notify deployment status
         if: always()
