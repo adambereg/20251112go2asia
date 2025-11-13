@@ -34,22 +34,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   // Страны из Atlas
-  const countries = await getCountries().catch(() => ({ items: [] }));
-  const countryPages: MetadataRoute.Sitemap = countries.items.map((country) => ({
-    url: `${baseUrl}/atlas/countries/${country.id}`,
-    lastModified: new Date(), // В будущем будет из БД
-    changeFrequency: 'weekly' as const,
-    priority: 0.7,
-  }));
+  const countriesResult = await getCountries().catch(() => null);
+  const countries = countriesResult?.items || [];
+  const countryPages: MetadataRoute.Sitemap = Array.isArray(countries) 
+    ? countries.map((country) => ({
+        url: `${baseUrl}/atlas/countries/${country.id}`,
+        lastModified: new Date(), // В будущем будет из БД
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      }))
+    : [];
 
   // Статьи из Blog
-  const articles = await getArticles().catch(() => ({ items: [] }));
-  const articlePages: MetadataRoute.Sitemap = articles.items.map((article) => ({
-    url: `${baseUrl}/blog/${article.slug}`,
-    lastModified: new Date(article.publishedAt),
-    changeFrequency: 'monthly' as const,
-    priority: 0.8,
-  }));
+  const articlesResult = await getArticles().catch(() => null);
+  const articles = articlesResult?.items || [];
+  const articlePages: MetadataRoute.Sitemap = Array.isArray(articles)
+    ? articles.map((article) => ({
+        url: `${baseUrl}/blog/${article.slug}`,
+        lastModified: new Date(article.publishedAt),
+        changeFrequency: 'monthly' as const,
+        priority: 0.8,
+      }))
+    : [];
 
   return [...staticPages, ...countryPages, ...articlePages];
 }

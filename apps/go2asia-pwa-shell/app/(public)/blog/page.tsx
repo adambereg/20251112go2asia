@@ -21,7 +21,8 @@ export const metadata: Metadata = {
 export const revalidate = 3600; // 1 час для статических страниц
 
 export default async function BlogPage() {
-  const { items: articles } = await getArticles();
+  const articlesResult = await getArticles().catch(() => null);
+  const articles = articlesResult?.items || [];
 
   return (
     <main className="container mx-auto px-4 py-8">

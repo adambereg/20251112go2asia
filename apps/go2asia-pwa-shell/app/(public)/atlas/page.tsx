@@ -21,7 +21,8 @@ export const metadata: Metadata = {
 export const revalidate = 300; // 5 минут
 
 export default async function AtlasPage() {
-  const { items: countries } = await getCountries();
+  const countriesResult = await getCountries().catch(() => null);
+  const countries = countriesResult?.items || [];
 
   return (
     <main className="container mx-auto px-4 py-8">
@@ -30,8 +31,11 @@ export default async function AtlasPage() {
         База знаний о локациях Юго-Восточной Азии
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {countries.map((country) => (
+      {countries.length === 0 ? (
+        <p className="text-gray-500">Страны скоро появятся</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {countries.map((country) => (
           <Link
             key={country.id}
             href={`/atlas/countries/${country.id}`}
@@ -43,7 +47,8 @@ export default async function AtlasPage() {
             )}
           </Link>
         ))}
-      </div>
+        </div>
+      )}
     </main>
   );
 }
