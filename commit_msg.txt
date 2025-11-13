@@ -1,5 +1,5 @@
-Добавлено руководство по секретам Cloudflare Workers
+Добавлено руководство по настройке Neon для staging и production
 
-- Создан CLOUDFLARE_SECRETS_GUIDE.md с объяснением как работать с секретами для staging и production
-- Обновлён MIGRATION_CHECKLIST.md с пояснениями о секретах
-- Разъяснено что имя секрета одинаковое, но значения разные для разных окружений
+- Создан NEON_SETUP_GUIDE.md с объяснением что нужны отдельные проекты Neon
+- Обновлён MIGRATION_CHECKLIST.md с правильными инструкциями
+- Разъяснено что не нужно менять имя пользователя в connection string
