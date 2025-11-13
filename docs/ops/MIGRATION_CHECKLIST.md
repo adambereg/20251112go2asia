@@ -110,10 +110,14 @@
   - [x] `SERVICE_JWT_SECRET` (если используется)
 
 - [ ] **Content Service** (`go2asia-content-service`)
-  - [ ] `DATABASE_URL` (staging) — добавить в Cloudflare Dashboard для staging Worker/deployment
-  - [ ] `DATABASE_URL` (production) — добавить в Cloudflare Dashboard для production Worker/deployment
+  - [ ] `DATABASE_URL` (staging) — добавить в **Cloudflare Dashboard** для staging Worker/deployment
+  - [ ] `DATABASE_URL` (production) — добавить в **Cloudflare Dashboard** для production Worker/deployment
   - [ ] `SERVICE_JWT_SECRET` — общий для обоих окружений
-  - **💡 Примечание:** Имя секрета одинаковое (`DATABASE_URL`), но значения разные для staging и production. См. [CLOUDFLARE_SECRETS_GUIDE.md](CLOUDFLARE_SECRETS_GUIDE.md)
+  - **💡 Примечание:** 
+    - Имя секрета одинаковое (`DATABASE_URL`), но значения разные для staging и production
+    - Это **отдельные секреты** от GitHub Secrets (`STAGING_DATABASE_URL`, `PRODUCTION_DATABASE_URL`)
+    - GitHub Secrets используются для CI/CD (миграции), Cloudflare Secrets — для работы приложения
+    - См. [CLOUDFLARE_SECRETS_GUIDE.md](CLOUDFLARE_SECRETS_GUIDE.md) и [SECRETS_EXPLAINED.md](SECRETS_EXPLAINED.md)
 
 - [ ] **Auth Service** (`go2asia-auth-service`)
   - [ ] `CLERK_SECRET_KEY`
@@ -169,17 +173,23 @@
 
 ## ⏳ Шаг 6: Neon — ПРОВЕРИТЬ
 
-### 6.1 Проверка Connection Strings
+### 6.1 Проверка Connection Strings для GitHub Secrets
 
-**💡 ВАЖНО:** В Neon создаются **отдельные проекты** для staging и production. У каждого проекта свой connection string с разными хостами (endpoints). Не нужно менять имя пользователя в connection string!
+**💡 ВАЖНО:** 
+- В Neon создаются **отдельные проекты** для staging и production
+- У каждого проекта свой connection string с разными хостами (endpoints)
+- **GitHub Secrets** нужны для CI/CD workflows (миграции, seeds)
+- **Cloudflare Workers Secrets** нужны отдельно для работы приложения (см. Шаг 4.2)
+
+**Подробнее:** См. [SECRETS_EXPLAINED.md](SECRETS_EXPLAINED.md) для понимания разницы между GitHub и Cloudflare секретами.
 
 - [x] Открыть Neon Console
 - [x] Найти staging проект (или создать новый если его нет) — создан `go2asia-staging`
 - [x] Скопировать Connection String из staging проекта
-- [x] Проверить что он добавлен в GitHub Secrets как `STAGING_DATABASE_URL`
+- [x] Проверить что он добавлен в **GitHub Secrets** как `STAGING_DATABASE_URL`
 - [x] Найти production проект (или использовать существующий) — проект `go2asia`
-- [ ] Переименовать `DATABASE_URL` в `PRODUCTION_DATABASE_URL` в GitHub Secrets
-- [ ] Проверить что production Connection String добавлен как `PRODUCTION_DATABASE_URL`
+- [ ] Переименовать `DATABASE_URL` в `PRODUCTION_DATABASE_URL` в **GitHub Secrets**
+- [ ] Проверить что production Connection String добавлен в **GitHub Secrets** как `PRODUCTION_DATABASE_URL`
 
 **Проверка:**
 - Connection strings должны иметь **разные хосты** (endpoints)
