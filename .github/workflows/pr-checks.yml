@@ -112,7 +112,9 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
-    needs: [deploy-preview]
+    # NOTE: deploy-preview job is in preview-deploy.yml workflow, not in this one
+    # E2E tests will run independently, or can be triggered after preview-deploy completes
+    # needs: [deploy-preview]  # Commented out - deploy-preview is in a different workflow
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
