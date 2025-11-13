@@ -18,10 +18,10 @@
 
 **⚠️ ВАЖНО:** Workflows используют отдельные секреты для staging и production. Нужно либо:
 1. Создать отдельные секреты (рекомендуется):
-   - [ ] `CLOUDFLARE_STAGING_API_TOKEN` (скопировать из `CLOUDFLARE_API_TOKEN`)
-   - [ ] `CLOUDFLARE_STAGING_ACCOUNT_ID` (скопировать из `CLOUDFLARE_ACCOUNT_ID`)
-   - [ ] `CLOUDFLARE_PRODUCTION_API_TOKEN` (скопировать из `CLOUDFLARE_API_TOKEN`)
-   - [ ] `CLOUDFLARE_PRODUCTION_ACCOUNT_ID` (скопировать из `CLOUDFLARE_ACCOUNT_ID`)
+   - [x] `CLOUDFLARE_STAGING_API_TOKEN` (скопировать из `CLOUDFLARE_API_TOKEN`)
+   - [x] `CLOUDFLARE_STAGING_ACCOUNT_ID` (скопировать из `CLOUDFLARE_ACCOUNT_ID`)
+   - [x] `CLOUDFLARE_PRODUCTION_API_TOKEN` (скопировать из `CLOUDFLARE_API_TOKEN`)
+   - [x] `CLOUDFLARE_PRODUCTION_ACCOUNT_ID` (скопировать из `CLOUDFLARE_ACCOUNT_ID`)
 
 2. Или обновить workflows чтобы использовать общие секреты (менее безопасно)
 
@@ -81,33 +81,33 @@
 
 **Проверить что все файлы содержат правильные настройки:**
 
-- [ ] `apps/api-gateway/wrangler.toml`
-  - [ ] Production route: `api.go2asia.space/*`
-  - [ ] Staging route: `api-staging.go2asia.space/*`
-  - [ ] Zone name: `go2asia.space`
+- [x] `apps/api-gateway/wrangler.toml`
+  - [x] Production route: `api.go2asia.space/*`
+  - [x] Staging route: `api-staging.go2asia.space/*`
+  - [x] Zone name: `go2asia.space`
 
-- [ ] `services/content-service/wrangler.toml`
-  - [ ] Production route: `content.go2asia.space/*`
-  - [ ] Staging route: `content-staging.go2asia.space/*`
+- [x] `services/content-service/wrangler.toml`
+  - [x] Production route: `content.go2asia.space/*`
+  - [x] Staging route: `content-staging.go2asia.space/*`
 
-- [ ] `services/auth-service/wrangler.toml`
-  - [ ] Production route: `auth.go2asia.space/*`
-  - [ ] Staging route: `auth-staging.go2asia.space/*`
+- [x] `services/auth-service/wrangler.toml`
+  - [x] Production route: `auth.go2asia.space/*`
+  - [x] Staging route: `auth-staging.go2asia.space/*`
 
-- [ ] `services/token-service/wrangler.toml`
-  - [ ] Production route: `token.go2asia.space/*`
-  - [ ] Staging route: `token-staging.go2asia.space/*`
+- [x] `services/token-service/wrangler.toml`
+  - [x] Production route: `token.go2asia.space/*`
+  - [x] Staging route: `token-staging.go2asia.space/*`
 
-- [ ] `services/referral-service/wrangler.toml`
-  - [ ] Production route: `referral.go2asia.space/*`
-  - [ ] Staging route: `referral-staging.go2asia.space/*`
+- [x] `services/referral-service/wrangler.toml`
+  - [x] Production route: `referral.go2asia.space/*` (исправлено с `connect.go2asia.space/*`)
+  - [x] Staging route: `referral-staging.go2asia.space/*` (исправлено с `connect-staging.go2asia.space/*`)
 
 ### 4.2 Проверка секретов в Cloudflare Workers
 
 **Для каждого Worker проверить секреты:**
 
-- [ ] **API Gateway** (`go2asia-api-gateway`)
-  - [ ] `SERVICE_JWT_SECRET` (если используется)
+- [x] **API Gateway** (`go2asia-api-gateway`)
+  - [x] `SERVICE_JWT_SECRET` (если используется)
 
 - [ ] **Content Service** (`go2asia-content-service`)
   - [ ] `DATABASE_URL` (staging)
@@ -128,6 +128,7 @@
   - [ ] `DATABASE_URL` (staging)
   - [ ] `DATABASE_URL` (production)
   - [ ] `SERVICE_JWT_SECRET`
+  - [x] Routes исправлены: `referral.go2asia.space/*` и `referral-staging.go2asia.space/*`
 
 **Как проверить:**
 1. Cloudflare Dashboard → Workers & Pages

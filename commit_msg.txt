@@ -1,1 +1,7 @@
-Добавлен практический чеклист миграции
+Исправлены домены для referral-service и обновлён чеклист миграции
+
+- Исправлены routes в services/referral-service/wrangler.toml:
+  - production: connect.go2asia.space → referral.go2asia.space
+  - staging: connect-staging.go2asia.space → referral-staging.go2asia.space
+- Обновлён MIGRATION_CHECKLIST.md с отметками о проверке wrangler.toml файлов
+
