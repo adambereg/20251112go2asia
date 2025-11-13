@@ -1,5 +1,9 @@
 import { Context, Next } from 'hono';
 
+type Variables = {
+  requestId: string;
+};
+
 // Простой in-memory rate limiter (заглушка)
 // В production будет заменён на Cloudflare Rate Limiting Rules
 
@@ -27,7 +31,7 @@ function getKey(c: Context, type: string): string {
 }
 
 export function rateLimit(type: keyof typeof LIMITS) {
-  return async (c: Context, next: Next) => {
+  return async (c: Context<{ Variables: Variables }>, next: Next) => {
     const limit = LIMITS[type];
     const key = getKey(c, type);
     const now = Date.now();
@@ -47,7 +51,7 @@ export function rateLimit(type: keyof typeof LIMITS) {
     
     // Проверка лимита
     if (store[key].count >= limit.max) {
-      const requestId = c.get('requestId') || 'unknown';
+      const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
       // Заголовки при превышении лимита
       c.header('X-RateLimit-Remaining', '0');
       c.header('X-RateLimit-Reset', new Date(store[key].resetAt).toISOString());
@@ -71,6 +75,6 @@ export function rateLimit(type: keyof typeof LIMITS) {
     c.header('X-RateLimit-Remaining', Math.max(0, limit.max - store[key].count).toString());
     c.header('X-RateLimit-Reset', new Date(store[key].resetAt).toISOString());
 
-    await next();
+    return next();
   };
 }

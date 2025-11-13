@@ -52,7 +52,7 @@ export async function proxyRequest(
   
   // Таймаут для прокси-запросов (5-8 секунд)
   const PROXY_TIMEOUT = parseInt(
-    process.env.PROXY_TIMEOUT || c.env?.PROXY_TIMEOUT || '6000',
+    (c.env as { PROXY_TIMEOUT?: string } | undefined)?.PROXY_TIMEOUT || '6000',
     10
   );
   

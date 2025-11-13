@@ -1,15 +1,19 @@
 import { Hono } from 'hono';
 import { db } from '../utils/db';
-import { countries, cities, places, events, articles } from '../db/schema';
-import { eq, and, gte, lte, desc, asc, gt } from 'drizzle-orm';
+import { countries, cities, places } from '../db/schema';
+import { eq, and, asc, gt } from 'drizzle-orm';
 
-const contentRouter = new Hono();
+type Variables = {
+  requestId: string;
+};
+
+const contentRouter = new Hono<{ Variables: Variables }>();
 
 /**
  * GET /v1/countries - Список стран
  */
 contentRouter.get('/countries', async (c) => {
-  const requestId = c.get('requestId') || 'unknown';
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
   
   try {
     const items = await db.select().from(countries).orderBy(asc(countries.name));
@@ -39,7 +43,7 @@ contentRouter.get('/countries', async (c) => {
  * GET /v1/countries/:id - Детали страны
  */
 contentRouter.get('/countries/:id', async (c) => {
-  const requestId = c.get('requestId') || 'unknown';
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
   const id = c.req.param('id');
   
   try {
@@ -81,7 +85,7 @@ contentRouter.get('/countries/:id', async (c) => {
  * GET /v1/cities - Список городов с фильтрацией и пагинацией
  */
 contentRouter.get('/cities', async (c) => {
-  const requestId = c.get('requestId') || 'unknown';
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
   
   try {
     const country = c.req.query('country');
@@ -154,7 +158,7 @@ contentRouter.get('/cities', async (c) => {
  * GET /v1/places - Список мест с фильтрацией и пагинацией
  */
 contentRouter.get('/places', async (c) => {
-  const requestId = c.get('requestId') || 'unknown';
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
   
   try {
     const city = c.req.query('city');

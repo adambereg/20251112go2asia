@@ -2,18 +2,23 @@ import { Context, Next } from 'hono';
 import { z } from 'zod';
 import { createErrorResponse } from '../utils/errors';
 
+type Variables = {
+  requestId: string;
+  validatedBody?: unknown;
+};
+
 /**
  * Middleware для валидации тела запроса через Zod
  */
 export function validateBody<T extends z.ZodType>(schema: T) {
-  return async (c: Context, next: Next) => {
+  return async (c: Context<{ Variables: Variables }>, next: Next) => {
     try {
       const body = await c.req.json();
       const validated = schema.parse(body);
       c.set('validatedBody', validated);
-      await next();
+      return next();
     } catch (error) {
-      const requestId = c.get('requestId') || 'unknown';
+      const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
       
       if (error instanceof z.ZodError) {
         return c.json(

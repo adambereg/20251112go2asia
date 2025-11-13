@@ -1,13 +1,17 @@
 import { Hono } from 'hono';
-import { generateRequestId, logRequest, logError } from '@go2asia/logger';
+import { generateRequestId, logRequest, logError, logWarn } from '@go2asia/logger';
 import { checkDatabaseConnection } from './utils/db';
 
-const app = new Hono();
+type Variables = {
+  requestId: string;
+};
+
+const app = new Hono<{ Variables: Variables }>();
 
 // Middleware для трассировки с логированием
 app.use('*', async (c, next) => {
   const requestId = c.req.header('X-Request-Id') || generateRequestId();
-  c.set('requestId', requestId);
+  c.set('requestId' as keyof Variables, requestId);
   c.header('X-Request-Id', requestId);
   
   const start = Date.now();
@@ -42,10 +46,11 @@ app.get('/health', (c) => {
 
 // Ready check
 app.get('/ready', async (c) => {
-  const requestId = c.get('requestId') || generateRequestId();
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) ?? generateRequestId();
   try {
-    const dbConnected = await checkDatabaseConnection();
+    const dbConnected = await checkDatabaseConnection(c.env as { DATABASE_URL?: string } | undefined);
     if (!dbConnected) {
+      logWarn(requestId, 'Database connection failed', { endpoint: 'ready' });
       return c.json(
         {
           status: 'not ready',
@@ -56,6 +61,7 @@ app.get('/ready', async (c) => {
     }
     return c.json({ status: 'ready' });
   } catch (error) {
+    logError(requestId, error instanceof Error ? error : new Error('Unknown error'), { endpoint: 'ready' });
     return c.json(
       {
         status: 'not ready',

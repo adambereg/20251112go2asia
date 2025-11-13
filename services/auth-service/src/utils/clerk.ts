@@ -5,11 +5,17 @@
 
 /**
  * Проверка доступности JWKS endpoint от Clerk
+ * @param env - Объект с переменными окружения (из Cloudflare Workers env)
  */
-export async function checkClerkJWKS(): Promise<boolean> {
+export async function checkClerkJWKS(env?: {
+  CLERK_JWKS_URL?: string;
+  CLERK_DOMAIN?: string;
+}): Promise<boolean> {
+  // В Cloudflare Workers переменные окружения доступны через env из контекста
+  // Для локальной разработки можно использовать значения по умолчанию
   const clerkJWKSUrl =
-    process.env.CLERK_JWKS_URL ||
-    `https://${process.env.CLERK_DOMAIN || 'clerk.go2asia.space'}/.well-known/jwks.json`;
+    env?.CLERK_JWKS_URL ||
+    `https://${env?.CLERK_DOMAIN || 'clerk.go2asia.space'}/.well-known/jwks.json`;
 
   try {
     const controller = new AbortController();
@@ -29,8 +35,8 @@ export async function checkClerkJWKS(): Promise<boolean> {
     }
 
     // Проверяем что это валидный JWKS
-    const data = await response.json();
-    return Array.isArray(data.keys) && data.keys.length > 0;
+    const data = await response.json() as { keys?: unknown[] };
+    return Array.isArray(data?.keys) && data.keys.length > 0;
   } catch (error) {
     console.error('Clerk JWKS check failed:', error);
     return false;

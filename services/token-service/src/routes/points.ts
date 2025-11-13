@@ -3,9 +3,29 @@ import { z } from 'zod';
 import { db } from '../utils/db';
 import { balances, transactions } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
-import { createErrorResponse } from '../../../apps/api-gateway/src/utils/errors';
+import type { ErrorResponse } from '@go2asia/schemas';
 
-const pointsRouter = new Hono();
+type Variables = {
+  requestId: string;
+};
+
+function createErrorResponse(
+  code: string,
+  message: string,
+  traceId: string,
+  key?: string
+): ErrorResponse {
+  return {
+    error: {
+      code,
+      message,
+      traceId,
+      ...(key && { key }),
+    },
+  };
+}
+
+const pointsRouter = new Hono<{ Variables: Variables }>();
 
 // Схема для добавления points
 const addPointsSchema = z.object({
@@ -28,7 +48,7 @@ const subtractPointsSchema = z.object({
  * Идемпотентный endpoint с проверкой Idempotency-Key
  */
 pointsRouter.post('/add', async (c) => {
-  const requestId = c.get('requestId') || 'unknown';
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
   const idempotencyKey = c.req.header('Idempotency-Key');
   
   try {
@@ -73,7 +93,7 @@ pointsRouter.post('/add', async (c) => {
     
     // Используем Drizzle транзакции для атомарности
     try {
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         if (!balance) {
           // Создаём баланс если его нет
           await tx
@@ -144,7 +164,7 @@ pointsRouter.post('/add', async (c) => {
  * Идемпотентный endpoint с проверкой Idempotency-Key
  */
 pointsRouter.post('/subtract', async (c) => {
-  const requestId = c.get('requestId') || 'unknown';
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
   const idempotencyKey = c.req.header('Idempotency-Key');
   
   try {
@@ -211,7 +231,7 @@ pointsRouter.post('/subtract', async (c) => {
     
     // Используем Drizzle транзакции для атомарности
     try {
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         // Создаём транзакцию
         const [transaction] = await tx
           .insert(transactions)

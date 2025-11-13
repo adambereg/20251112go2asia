@@ -7,8 +7,7 @@ export function createErrorResponse(
   code: string,
   message: string,
   traceId: string,
-  key?: string,
-  statusCode: number = 500
+  key?: string
 ): ErrorResponse {
   return {
     error: {

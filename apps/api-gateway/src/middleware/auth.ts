@@ -2,12 +2,17 @@ import { Context, Next } from 'hono';
 import { verifyJWT } from '@go2asia/logger';
 import { createErrorResponse } from '../utils/errors';
 
+type Variables = {
+  requestId: string;
+  user?: unknown;
+};
+
 /**
  * Middleware для проверки JWT токена
  */
 export function authMiddleware() {
-  return async (c: Context, next: Next) => {
-    const requestId = c.get('requestId') || 'unknown';
+  return async (c: Context<{ Variables: Variables }>, next: Next) => {
+    const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
     const authHeader = c.req.header('Authorization');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -22,7 +27,7 @@ export function authMiddleware() {
     }
     
     const token = authHeader.substring(7);
-    const jwtSecret = c.env?.JWT_SECRET || process.env.JWT_SECRET;
+    const jwtSecret = (c.env as { JWT_SECRET?: string } | undefined)?.JWT_SECRET;
     
     if (!jwtSecret) {
       return c.json(
@@ -38,7 +43,7 @@ export function authMiddleware() {
     try {
       const payload = await verifyJWT(token, jwtSecret);
       c.set('user', payload);
-      await next();
+      return next();
     } catch (error) {
       return c.json(
         createErrorResponse(
@@ -57,8 +62,8 @@ export function authMiddleware() {
  * Строгая проверка: iss=gateway, aud=<service>, kid, exp/nbf
  */
 export function serviceAuthMiddleware(expectedAudience?: string) {
-  return async (c: Context, next: Next) => {
-    const requestId = c.get('requestId') || 'unknown';
+  return async (c: Context<{ Variables: Variables }>, next: Next) => {
+    const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || 'unknown';
     const authHeader = c.req.header('Authorization');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -73,7 +78,7 @@ export function serviceAuthMiddleware(expectedAudience?: string) {
     }
     
     const token = authHeader.substring(7);
-    const serviceSecret = c.env?.SERVICE_SECRET || process.env.SERVICE_SECRET;
+    const serviceSecret = (c.env as { SERVICE_SECRET?: string } | undefined)?.SERVICE_SECRET;
     
     if (!serviceSecret) {
       return c.json(
@@ -129,7 +134,10 @@ export function serviceAuthMiddleware(expectedAudience?: string) {
       const now = Math.floor(Date.now() / 1000);
       const clockSkew = 60; // 60 секунд допуск на рассинхронизацию часов
       
-      if (payload.exp && payload.exp < now - clockSkew) {
+      const exp = typeof payload.exp === 'number' ? payload.exp : undefined;
+      const nbf = typeof payload.nbf === 'number' ? payload.nbf : undefined;
+      
+      if (exp && exp < now - clockSkew) {
         return c.json(
           createErrorResponse(
             'UNAUTHORIZED',
@@ -140,7 +148,7 @@ export function serviceAuthMiddleware(expectedAudience?: string) {
         );
       }
       
-      if (payload.nbf && payload.nbf > now + clockSkew) {
+      if (nbf && nbf > now + clockSkew) {
         return c.json(
           createErrorResponse(
             'UNAUTHORIZED',
@@ -151,7 +159,7 @@ export function serviceAuthMiddleware(expectedAudience?: string) {
         );
       }
       
-      await next();
+      return next();
     } catch (error) {
       return c.json(
         createErrorResponse(

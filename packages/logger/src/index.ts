@@ -5,6 +5,7 @@
  */
 
 import { maskPII } from './pii';
+export { verifyJWT, signJWT, type JWTPayload } from './jwt';
 
 export function generateRequestId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -26,6 +27,10 @@ export function logRequest(
   status: number,
   context?: LogContext
 ): void {
+  const maskedContext = context ? maskPII(context) : {};
+  const maskedContextObj = typeof maskedContext === 'object' && maskedContext !== null && !Array.isArray(maskedContext) 
+    ? maskedContext as Record<string, unknown>
+    : {};
   const logData = {
     level: 'info',
     requestId,
@@ -34,7 +39,7 @@ export function logRequest(
     duration,
     status,
     timestamp: new Date().toISOString(),
-    ...(context ? maskPII(context) : {}),
+    ...maskedContextObj,
   };
   console.log(JSON.stringify(logData));
 }
@@ -44,6 +49,10 @@ export function logError(
   error: Error,
   context?: LogContext
 ): void {
+  const maskedContext = context ? maskPII(context) : {};
+  const maskedContextObj = typeof maskedContext === 'object' && maskedContext !== null && !Array.isArray(maskedContext) 
+    ? maskedContext as Record<string, unknown>
+    : {};
   const logData = {
     level: 'error',
     requestId,
@@ -53,7 +62,7 @@ export function logError(
       name: error.name,
     },
     timestamp: new Date().toISOString(),
-    ...(context ? maskPII(context) : {}),
+    ...maskedContextObj,
   };
   console.error(JSON.stringify(logData));
 }
@@ -63,12 +72,16 @@ export function logInfo(
   message: string,
   context?: LogContext
 ): void {
+  const maskedContext = context ? maskPII(context) : {};
+  const maskedContextObj = typeof maskedContext === 'object' && maskedContext !== null && !Array.isArray(maskedContext) 
+    ? maskedContext as Record<string, unknown>
+    : {};
   const logData = {
     level: 'info',
     requestId,
     message,
     timestamp: new Date().toISOString(),
-    ...(context ? maskPII(context) : {}),
+    ...maskedContextObj,
   };
   console.log(JSON.stringify(logData));
 }
@@ -78,12 +91,16 @@ export function logWarn(
   message: string,
   context?: LogContext
 ): void {
+  const maskedContext = context ? maskPII(context) : {};
+  const maskedContextObj = typeof maskedContext === 'object' && maskedContext !== null && !Array.isArray(maskedContext) 
+    ? maskedContext as Record<string, unknown>
+    : {};
   const logData = {
     level: 'warn',
     requestId,
     message,
     timestamp: new Date().toISOString(),
-    ...(context ? maskPII(context) : {}),
+    ...maskedContextObj,
   };
   console.warn(JSON.stringify(logData));
 }

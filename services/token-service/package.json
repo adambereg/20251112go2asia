@@ -19,7 +19,8 @@
     "drizzle-orm": "^0.29.0",
     "@neondatabase/serverless": "^0.9.0",
     "zod": "^3.22.4",
-    "@go2asia/logger": "workspace:*"
+    "@go2asia/logger": "workspace:*",
+    "@go2asia/schemas": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231121.0",

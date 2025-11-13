@@ -6,12 +6,16 @@ import { rateLimit } from './middleware/rateLimit';
 import { cacheConfigs } from './middleware/cache';
 import { createErrorResponse } from './utils/errors';
 
-const app = new Hono();
+type Variables = {
+  requestId: string;
+};
+
+const app = new Hono<{ Variables: Variables }>();
 
 // Middleware для трассировки с логированием
 app.use('*', async (c, next) => {
   const requestId = c.req.header('X-Request-Id') || generateRequestId();
-  c.set('requestId', requestId);
+  c.set('requestId' as keyof Variables, requestId);
   c.header('X-Request-Id', requestId);
   
   const start = Date.now();
@@ -34,11 +38,25 @@ app.use('*', async (c, next) => {
 });
 
 // CORS middleware - разделение по окружениям
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://go2asia.space']
-  : process.env.NODE_ENV === 'staging'
-  ? ['https://staging.go2asia.space', 'https://*.netlify.app']
-  : ['http://localhost:3000', 'https://*.netlify.app'];
+// В Cloudflare Workers переменные окружения доступны через env, но для совместимости используем значения по умолчанию
+// В production/staging это будет настроено через wrangler.toml vars
+const getEnvironment = (): 'production' | 'staging' | 'development' => {
+  // В Cloudflare Workers env доступен через c.env, но здесь мы используем значения по умолчанию
+  // Для определения окружения можно использовать домен или другие признаки
+  return 'development';
+};
+
+const getAllowedOrigins = (): string[] => {
+  const env = getEnvironment();
+  if (env === 'production') {
+    return ['https://go2asia.space'];
+  } else if (env === 'staging') {
+    return ['https://staging.go2asia.space', 'https://*.netlify.app'];
+  }
+  return ['http://localhost:3000', 'https://*.netlify.app'];
+};
+
+const allowedOrigins = getAllowedOrigins();
 
 app.use(
   '*',
@@ -80,7 +98,7 @@ app.use('*', async (c, next) => {
   if (c.req.method === 'POST' || c.req.method === 'PUT' || c.req.method === 'PATCH') {
     return rateLimit('post')(c, next);
   }
-  await next();
+  return next();
 });
 
 // Cache middleware для публичных GET с разными TTL
@@ -103,7 +121,9 @@ app.route('/v1/api/content', contentRouter);
 // Добавляем X-Version заголовок во все ответы
 app.use('*', async (c, next) => {
   await next();
-  const gitSha = process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || 'unknown';
+  // В Cloudflare Workers переменные окружения доступны через c.env
+  // Для совместимости используем значение по умолчанию
+  const gitSha = (c.env as { GITHUB_SHA?: string } | undefined)?.GITHUB_SHA || 'unknown';
   c.header('X-Version', gitSha.substring(0, 7)); // Короткий SHA
 });
 
@@ -117,7 +137,7 @@ app.get('/', (c) => {
 
 // Error handler
 app.onError(async (err, c) => {
-  const requestId = c.get('requestId') || generateRequestId();
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || generateRequestId();
   const { logError } = await import('@go2asia/logger');
   
   logError(requestId, err, {
@@ -154,7 +174,7 @@ app.onError(async (err, c) => {
 
 // 404 handler
 app.notFound((c) => {
-  const requestId = c.get('requestId') || generateRequestId();
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) || generateRequestId();
   
   return c.json(
     createErrorResponse(

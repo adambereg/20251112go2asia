@@ -1,13 +1,17 @@
 import { Hono } from 'hono';
-import { generateRequestId, logRequest, logError } from '@go2asia/logger';
+import { generateRequestId, logRequest, logError, logWarn } from '@go2asia/logger';
 import { checkClerkJWKS } from './utils/clerk';
 
-const app = new Hono();
+type Variables = {
+  requestId: string;
+};
+
+const app = new Hono<{ Variables: Variables }>();
 
 // Middleware для трассировки с логированием
 app.use('*', async (c, next) => {
   const requestId = c.req.header('X-Request-Id') || generateRequestId();
-  c.set('requestId', requestId);
+  c.set('requestId' as keyof Variables, requestId);
   c.header('X-Request-Id', requestId);
   
   const start = Date.now();
@@ -42,11 +46,14 @@ app.get('/health', (c) => {
 
 // Ready check
 app.get('/ready', async (c) => {
-  const requestId = c.get('requestId') || generateRequestId();
+  const requestId = (c.get('requestId' as keyof Variables) as string | undefined) ?? generateRequestId();
   try {
     // Проверяем доступность JWKS от Clerk
-    const clerkReady = await checkClerkJWKS();
+    // В Cloudflare Workers env доступен через c.env, но для совместимости передаём undefined
+    // Переменные окружения будут доступны через wrangler.toml vars или через секреты
+    const clerkReady = await checkClerkJWKS(c.env as { CLERK_JWKS_URL?: string; CLERK_DOMAIN?: string } | undefined);
     if (!clerkReady) {
+      logWarn(requestId, 'Clerk JWKS endpoint unavailable', { endpoint: 'ready' });
       return c.json(
         {
           status: 'not ready',
@@ -57,6 +64,7 @@ app.get('/ready', async (c) => {
     }
     return c.json({ status: 'ready' });
   } catch (error) {
+    logError(requestId, error instanceof Error ? error : new Error('Unknown error'), { endpoint: 'ready' });
     return c.json(
       {
         status: 'not ready',
