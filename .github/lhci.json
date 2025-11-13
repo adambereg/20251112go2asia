@@ -1,9 +1,7 @@
 {
   "ci": {
     "collect": {
-      "numberOfRuns": 2,
-      "startServerCommand": "echo 'No server needed - testing deployed preview'",
-      "url": []
+      "numberOfRuns": 2
     },
     "assert": {
       "assertions": {

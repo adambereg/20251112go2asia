@@ -89,6 +89,13 @@ jobs:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_STAGING_SITE_ID }}
         continue-on-error: true # Пока Netlify не настроен
       
+      - name: Wait for Netlify deployment
+        if: success()
+        run: |
+          echo "Waiting 30 seconds for Netlify deployment to propagate..."
+          sleep 30
+        continue-on-error: true
+      
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
         continue-on-error: true
